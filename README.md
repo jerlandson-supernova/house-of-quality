@@ -1,10 +1,50 @@
 # House of Quality
 
-An interactive House of Quality (the first QFD matrix) that you can fill from a form, a JSON file or five CSV files, with every formula written down, a diagonalised view that finds the modules and couplings in your design, a work-items view that checks "done" against your own tests, and a spreadsheet generator that writes the same house as an Excel workbook with live formulas.
+An interactive House of Quality (the first QFD matrix) with every formula written down, a diagonalised view that finds the modules and couplings in a design, a work-items view that checks "done" against your own tests, a spreadsheet generator with live formulas, **and an MCP server, so an AI agent can build, fill, read and export the house through tools.**
+
+Three ways in:
+
+| | |
+|---|---|
+| **A person** | opens `web/index.html`. Nothing to install: the sample loads, the Input tab takes your JSON or CSV, every cell is clickable. |
+| **A script** | runs `node tools/hoq.js` for reports, the dated TSV, CSV, SVG and the diagonal order, and `tools/make_xlsx.py` for the Excel workbook. |
+| **An AI agent** | connects to `mcp/server.js` over the Model Context Protocol and runs a QFD session with a stakeholder: 22 tools, three resources and a session prompt, on the same code the page runs. |
 
 It was built to run a real product review: sixteen stakeholder needs against twenty measurable characteristics, with gates, tickets and a weekly version of record. This repository is the generic version of that tool, with a small sample house (a commuter travel mug) so you can see every part working before you load your own.
 
-**Open `web/index.html` in a browser. Nothing to install.** The sample loads on first visit; the Input tab loads yours.
+## For AI agents: the MCP server
+
+`mcp/server.js` is a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio. Any MCP client (Claude Code, Claude Desktop, Cursor, or your own script on the SDK) connects to it and gets the whole house as tools. The tools call the same `web/hoq-core.js` the page calls, so an agent and a person editing the page always get the same numbers.
+
+```bash
+git clone https://github.com/jerlandson-supernova/house-of-quality && cd house-of-quality && npm install
+claude mcp add hoq -- node "$PWD/mcp/server.js" --file ./house.json
+```
+
+Then, in Claude Code:
+
+> **You:** Build a House of Quality for our new kettle. Interview me for the needs.
+>
+> **The agent** calls `house_new`, asks who the stakeholders are, records each need in your words with its source through `need_set`, asks you for the importance of each one (it is not allowed to guess), adds the measurable characteristics with a unit, a direction and a target through `characteristic_set`, proposes each room cell out loud and sets them in one go with `relationships_set_many`, records the trade-offs with `roof_set`, and reads the empty rows and columns back to you from `house_validate`.
+>
+> **You:** What should we build first?
+>
+> **The agent** reads `house_priorities` for the top five and the gates, `house_diagonal` for the modules and the build order, and `house_items` once the tickets are in. `house_export` writes the dated TSV, the version of record, and `house_draw` a picture you can paste anywhere.
+
+**What the agent gets**
+
+| Group | Tools |
+|---|---|
+| The house | `house_new`, `house_open`, `house_save`, `house_summary`, `house_get`, `house_validate` |
+| Rows and columns | `need_set`, `need_remove`, `characteristic_set`, `characteristic_remove` |
+| The room and the roof | `relationship_set`, `relationships_set_many`, `roof_set` |
+| Work items | `item_set`, `item_remove`, `status_scale_set` |
+| Reading | `house_report`, `house_priorities`, `house_diagonal`, `house_items`, `house_draw` |
+| Export | `house_export` as TSV, CSV, JSON, SVG or the Excel workbook |
+
+Plus the resources `hoq://house`, `hoq://report` and `hoq://drawing.svg`, and a `qfd_session` prompt that walks the agent through a session in the right order. With `--file`, every change is saved to that JSON file, so the page can open the same file and the person can keep editing where the agent left off.
+
+The rules an agent must keep are in [`docs/agent.md`](docs/agent.md): needs come from stakeholders in their own words, importance is theirs to set, a characteristic has a unit, gates are never ranked, a board status is a claim, and the dated TSV is the version of record. `npm test` builds a house through the server and checks what comes back.
 
 ## Screenshots
 
@@ -64,18 +104,6 @@ node tools/hoq.js from-csv out/ house.json                # back to one JSON fil
 ```
 
 Add `--gap` to `report` or `tsv` to weight each need by importance × (goal ÷ today) instead of importance alone.
-
-## Use it from an AI agent
-
-`mcp/server.js` is a Model Context Protocol server over stdio. An agent gets tools to start a house, add needs and characteristics, set the room and the roof, record work items, and read the priorities, the diagonal blocks and the items; `house_export` writes the dated TSV, CSV, JSON, SVG or the workbook. The tools run the same code as the page, so an agent and a person editing the page get the same numbers.
-
-```bash
-npm install
-claude mcp add hoq -- node /absolute/path/to/house-of-quality/mcp/server.js --file ./house.json
-npm test        # builds a small house through the server and checks what comes back
-```
-
-`docs/agent.md` lists the tools and the rules an agent should follow when it runs a session with a person: needs come from the stakeholders in their words, importance is theirs to set, a characteristic has a unit, gates are not ranked, the dated TSV is the version of record. The server also offers a `qfd_session` prompt that walks through those steps.
 
 ## Draw a house from a JSON file
 
