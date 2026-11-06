@@ -95,6 +95,29 @@ async function session(extraArgs, file) {
   must(rej.startsWith('Rejected'), 'reject');
   await client.close();
   console.log('direct mode and reject ok');
+
+  // 3. --assist with the mock provider: suggestions arrive as proposals only
+  ({ client, call } = await session(['--assist', 'mock'], file));
+  const tools3 = (await client.listTools()).tools.map(t => t.name);
+  must(tools3.includes('assist_suggest') && tools3.includes('assist_members') && tools3.includes('assist_status'), 'assist tools missing');
+  const st = JSON.parse(await call('assist_status', {})); must(st.provider === 'mock' && st.writes === 'proposals only', 'assist_status');
+  await call('need_set', { need: 'Heater power stays within the kettle power budget', short: 'Power budget', source: 'Engineering', importance: 3, by: 'Engineering' });
+  const before = JSON.parse(await call('house_get', { part: 'room' }));
+  const sg = await call('assist_suggest', { limit: 6 });
+  must(sg.includes('proposal') && sg.includes('mock'), 'assist_suggest: ' + sg.slice(0, 120));
+  const after3 = JSON.parse(await call('house_get', { part: 'room' }));
+  must(JSON.stringify(before) === JSON.stringify(after3), 'assist must not change the room');
+  const pend = JSON.parse(await call('proposals_list', {}));
+  must(pend.length >= 1 && pend.every(p => p.by.startsWith('assist:')), 'assist proposals carry the assist actor: ' + JSON.stringify(pend.map(p => p.by)));
+  const mem = await call('assist_members', { kind: 'needs', text: 'Customers said the kettle must switch off by itself when the water boils. Several asked for a lid that opens with one hand. One wanted it to be quiet before seven in the morning.' });
+  must(mem.includes('proposed needs'), 'assist_members: ' + mem.slice(0, 100));
+  const pend2 = JSON.parse(await call('proposals_list', {}));
+  const needProp = pend2.find(p => p.kind === 'need'); must(needProp && needProp.evidence, 'a need proposal with its excerpt');
+  const cf = await call('proposal_confirm', { id: needProp.id, confirmedBy: 'John' });
+  must(cf.startsWith('Confirmed'), 'confirm a proposed need');
+  const needs3 = JSON.parse(await call('house_get', { part: 'needs' })); must(needs3.length === 5, 'confirmed need was added: ' + needs3.length);
+  await client.close();
+  console.log('assist (mock) ok');
   console.log('ALL OK');
   process.exit(0);
 })().catch(e => { console.error(e); process.exit(1); });

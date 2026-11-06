@@ -21,7 +21,19 @@ Other clients take the same command (`node`) and arguments. Options:
 | `--no-confirm` | remove `proposal_confirm`, so only a person on the page can confirm. `proposal_confirm` refuses the agent's own name but cannot check that the person really said yes; use this flag when that matters |
 | `--anywhere` | let the agent read and write files outside the house's folder. By default `house_open`, `house_save`, `house_export`, `house_draw` and `house_markdown` refuse a path outside the folder of `--file` (or the working directory) |
 
-`npm test` runs a client against the server through both modes.
+| `--assist [provider]` | add the assist tools below. `provider` is `anthropic` (default; credentials from `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` or an `ant auth login` profile; model `HOQ_ASSIST_MODEL`, default `claude-opus-5-5`) or `mock` (deterministic, no key). `HOQ_ASSIST_MAX_CELLS` bounds one call (default 12) |
+
+`npm test` runs the core checks, the skills installer checks and a client against the server in proposal mode, direct mode and assist (mock) mode.
+
+## The assist: a model suggests, a person confirms
+
+With `--assist` the server gains `assist_status`, `assist_suggest` and `assist_members`. `assist_suggest` takes the empty cells from `house_next` (or the cells you name) and asks the model for 9, 3, 1 or 0 with a one-line reason; `assist_members` takes a text (interview notes, a survey, a review, a spec) and asks for the needs or the characteristics it supports, each with the verbatim excerpt it comes from, and only characteristics that have a unit. Everything comes back as proposals by the actor `assist:<model>`: a suggested blank is reported, not recorded; a suggested value waits for a person like any other proposal. The model never writes a cell, a weight or a rank. Calls are bounded (cells per call, request timeout, output ceiling) and report token usage. A refusal or a malformed answer is an error, not a silent blank.
+
+Use it the way you would use a junior colleague's first pass: ask for suggestions on the structural gaps, read the reasons out to the person, and let them confirm. Do not run it over every empty cell; most cells of a good house stay blank.
+
+## Installing the skill for other clients
+
+`node tools/hoq.js skills install --target all --project .` writes the skill for Claude Code (`.claude/skills/hoq/SKILL.md`), Codex (`.agents/skills/hoq/SKILL.md`), Cursor (`.cursor/rules/hoq.mdc`), Copilot (`.github/instructions/hoq.instructions.md`), Gemini (a marked section in `GEMINI.md`) and any `AGENTS.md` reader (a marked section). `--user` installs the Claude, Codex and Gemini ones under your home directory for every project; the others are per project. `.hoq-skills.json` records what was written with hashes: a file you edited is never overwritten without `--force`, `uninstall` removes only what still matches, and `--dry-run` shows the plan.
 
 ## Proposals: the agent suggests, a person confirms
 
@@ -42,7 +54,8 @@ Every accepted change appends one line to the **change log**: time, actor, opera
 | `characteristic_set`, `characteristic_remove` | Add or update a characteristic (column): name, unit, direction, target, today, links, difficulty, gate. |
 | `relationship_set`, `relationships_set_many` | Room cells: 9, 3, 1 or 0, with a note and evidence. Proposals unless `--direct`. |
 | `roof_set` | A pair of characteristics: ++, +, −, −− or empty. A proposal unless `--direct`. |
-| `propose`, `proposals_list`, `proposal_confirm`, `proposal_reject` | Suggest any value (a cell, a roof pair, a need's importance, today or goal); list, confirm as a named person, reject with a reason. |
+| `propose`, `proposals_list`, `proposal_confirm`, `proposal_reject` | Suggest any value (a cell, a roof pair, a need's importance, today or goal, or a whole new need or characteristic with its fields); list, confirm as a named person, reject with a reason. |
+| `assist_status`, `assist_suggest`, `assist_members` | With `--assist` only: a model's suggestions for cells, needs or characteristics, as proposals. |
 | `house_next` | The empty cells worth looking at: needs nothing serves, needs with no strong driver, characteristics driving nothing, then by weight. Most cells of a good house stay blank; this names the structural gaps. |
 | `item_set`, `item_remove`, `status_scale_set` | Work items with status, due date, effort and your test verdict; the status weights. |
 | `house_report`, `house_markdown` | The plain-text report; the full Markdown report (summary, needs, characteristics, the room, the roof, the diagonal blocks and coupling, items, pending proposals, findings, provenance). |

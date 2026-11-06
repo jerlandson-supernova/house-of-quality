@@ -41,13 +41,33 @@ Then, in Claude Code:
 | Rows and columns | `need_set`, `need_remove`, `characteristic_set`, `characteristic_remove` |
 | The room and the roof | `relationship_set`, `relationships_set_many`, `roof_set` (proposals unless `--direct`) |
 | Proposals | `propose`, `proposals_list`, `proposal_confirm`, `proposal_reject`, and `house_next` for the empty cells worth looking at |
+| Assist (with `--assist`) | `assist_status`, `assist_suggest`, `assist_members`: a model's suggestions, as proposals only |
 | Work items | `item_set`, `item_remove`, `status_scale_set` |
 | Reading | `house_report`, `house_markdown` (the report to hand to a person), `house_priorities`, `house_diagonal`, `house_items`, `house_draw` |
 | Export | `house_export` as TSV, CSV, JSON, Markdown, SVG or the Excel workbook |
 
 Plus the resources `hoq://house`, `hoq://report`, `hoq://report.md` and `hoq://drawing.svg`, and a `qfd_session` prompt that walks the agent through a session in the right order. With `--file`, every change is saved to that JSON file, so the page can open the same file and the person can keep editing where the agent left off.
 
-**The skill travels with it.** `node tools/hoq.js skills install --target all --project .` puts the agent guide where Claude Code (`.claude/skills`), Codex (`.agents/skills`), Cursor (`.cursor/rules`) and any `AGENTS.md` reader will find it; `--user` installs it for every project, `uninstall` removes exactly what it wrote.
+**The skill travels with it.** One command puts the agent guide where each client reads it:
+
+```bash
+node tools/hoq.js skills install --target all --project .     # or --target claude,cursor
+node tools/hoq.js skills list --project .
+node tools/hoq.js skills uninstall --project .
+```
+
+| Target | Where it lands | `--user` |
+|---|---|---|
+| `claude` | `.claude/skills/hoq/SKILL.md` | `~/.claude/skills/hoq/SKILL.md` |
+| `codex` | `.agents/skills/hoq/SKILL.md` | `~/.agents/skills/hoq/SKILL.md` |
+| `cursor` | `.cursor/rules/hoq.mdc` | project only |
+| `copilot` | `.github/instructions/hoq.instructions.md` (`applyTo: "**"`) | project only |
+| `gemini` | a marked section in `GEMINI.md` | `~/.gemini/GEMINI.md` |
+| `agents-md` | a marked section in `AGENTS.md` | project only |
+
+A manifest (`.hoq-skills.json`) records every file and section with its hash. A file you edited afterwards is never overwritten (`--force` does), `uninstall` removes only what still matches what was written and says what it left alone, and `--dry-run` shows the plan. `tools/test-skills.js` exercises all of this.
+
+**Optional assist: a model suggests, a person confirms.** Start the server with `--assist` and it gains three tools. `assist_suggest` asks a model for 9/3/1/0 on the empty cells worth looking at, with a one-line reason each; `assist_members` extracts needs or characteristics from interview notes, a survey or a spec, each with the verbatim excerpt it rests on; `assist_status` says which model and limits are in use. Nothing the model says is written to the house: every suggestion becomes a proposal with the actor `assist:<model>`, and a person confirms or rejects it like any other. It is off by default, bounded (cells per call, request timeout, output ceiling) and reports token usage on every call. Credentials come from `ANTHROPIC_API_KEY` or an `ant auth login` profile; the model is `claude-opus-5-5` unless `HOQ_ASSIST_MODEL` says otherwise; `--assist mock` runs a deterministic stand-in with no key, which is what the tests use.
 
 The rules an agent must keep are in [`docs/agent.md`](docs/agent.md) and in the skill: needs come from stakeholders in their own words, importance is theirs to set, a characteristic has a unit, gates are never ranked, a board status is a claim, and the dated TSV is the version of record. `npm test` builds a house through the server, as proposals and as direct writes, and checks what comes back.
 

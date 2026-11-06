@@ -9,7 +9,7 @@
  *   node tools/hoq.js svg       house.json [out.svg] [--reduce] [--numbers] [--gap]   draw the house as SVG
  *   node tools/hoq.js md        house.json [out.md] [--numbers] [--gap]             the Markdown report (for an agent or a person)
  *   node tools/hoq.js next      house.json [--limit=N]  the empty cells worth looking at, and the structural gaps
- *   node tools/hoq.js skills    install|uninstall|list --target claude|codex|cursor|agents-md|all (--project DIR | --user)
+ *   node tools/hoq.js skills    install|uninstall|list [--target claude|codex|cursor|copilot|gemini|agents-md|all] [--project DIR | --user] [--force] [--dry-run]
  *   node tools/hoq.js diag      house.json              the diagonal order and measures as JSON (used by tools/make_xlsx.py)
  *   node tools/hoq.js sample-js house.json out.js       write the house as window.HOQ_SAMPLE = … for the web page
  */
@@ -97,43 +97,21 @@ if (cmd === 'next') {
   N.cells.forEach(c => console.log(`  ${c.need} × ${c.characteristic}  ${String(c.score).padStart(6)}  ${c.needShort} ← ${c.characteristicShort}: ${c.why}`));
 }
 if (cmd === 'skills') {
-  // Install the agent skill (skills/hoq/SKILL.md) where a client reads it, the way crossmatrix does; a manifest records what was written so uninstall removes only that.
+  // Install the agent skill (skills/hoq/SKILL.md) where each client reads it; tools/skills.js keeps a manifest with hashes so
+  // a file you edited is never overwritten without --force and uninstall removes only what was written.
+  const S = require(path.join(__dirname, 'skills.js'));
   const args = process.argv.slice(2);
   const sub = a1 || 'list';
-  const target = (flags.find(f => f.startsWith('--target=')) || '--target=all').slice(9);
-  const tIdx = args.indexOf('--target'); const targetArg = tIdx >= 0 ? args[tIdx + 1] : target;
-  const user = flags.includes('--user');
-  const pIdx = args.indexOf('--project'); const projectArg = pIdx >= 0 ? args[pIdx + 1] : (flags.find(f => f.startsWith('--project=')) || '').slice(10);
-  const project = path.resolve(projectArg || '.');
-  const home = require('os').homedir();
-  const skill = fs.readFileSync(path.join(__dirname, '..', 'skills', 'hoq', 'SKILL.md'), 'utf8');
-  let targets = targetArg === 'all' ? ['claude', 'codex', 'cursor', 'agents-md'] : targetArg.split(',');
-  if (user) { const dropped = targets.filter(t => t === 'cursor' || t === 'agents-md'); if (dropped.length) { console.log('skipped with --user (per-project only; run without --user inside the project):', dropped.join(', ')); targets = targets.filter(t => !dropped.includes(t)); } }
-  const manifestPath = path.join(user ? home : project, '.hoq-skills.json');
-  const manifest = fs.existsSync(manifestPath) ? JSON.parse(fs.readFileSync(manifestPath, 'utf8')) : { files: [], sections: [] };
-  const MARK0 = '<!-- hoq:start -->', MARK1 = '<!-- hoq:end -->';
-  const plans = targets.map(t => {
-    if (t === 'claude') return { file: path.join(user ? home : project, '.claude', 'skills', 'hoq', 'SKILL.md'), text: skill };
-    if (t === 'codex') return { file: path.join(user ? home : project, '.agents', 'skills', 'hoq', 'SKILL.md'), text: skill };
-    if (t === 'cursor') return { file: path.join(project, '.cursor', 'rules', 'hoq.mdc'), text: '---\ndescription: Build and read a House of Quality (QFD) through the hoq MCP server\nalwaysApply: false\n---\n' + skill.replace(/^---[\s\S]*?---\n/, '') };
-    if (t === 'agents-md') return { file: path.join(project, 'AGENTS.md'), section: MARK0 + '\n' + skill.replace(/^---[\s\S]*?---\n/, '') + '\n' + MARK1 + '\n' };
-    console.error('unknown target', t); process.exit(1);
-  });
-  if (sub === 'list') { console.log(manifest.files.length || manifest.sections.length ? ['Installed from', manifestPath + ':', ...manifest.files, ...manifest.sections.map(f => f + ' (section)')].join('\n  ') : 'Nothing installed under ' + (user ? home : project)); }
-  else if (sub === 'install') {
-    plans.forEach(p => {
-      if (p.section) { let cur = fs.existsSync(p.file) ? fs.readFileSync(p.file, 'utf8') : ''; const i = cur.indexOf(MARK0), j = cur.indexOf(MARK1); if (i >= 0 && j > i) cur = cur.slice(0, i) + p.section.trimEnd() + '\n' + cur.slice(j + MARK1.length).replace(/^\n/, ''); else cur = (cur ? cur.trimEnd() + '\n\n' : '') + p.section; fs.writeFileSync(p.file, cur); if (!manifest.sections.includes(p.file)) manifest.sections.push(p.file); console.log('wrote section in', p.file); }
-      else { fs.mkdirSync(path.dirname(p.file), { recursive: true }); fs.writeFileSync(p.file, p.text); if (!manifest.files.includes(p.file)) manifest.files.push(p.file); console.log('wrote', p.file); }
-    });
-    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+  const val = (flag) => { const i = args.indexOf(flag); if (i >= 0 && args[i + 1] && !args[i + 1].startsWith('--')) return args[i + 1]; const f = args.find(x => x.startsWith(flag + '=')); return f ? f.slice(flag.length + 1) : ''; };
+  const targetArg = val('--target') || 'all';
+  const opts = { targets: targetArg === 'all' ? 'all' : targetArg.split(','), dir: val('--project') || '.', scope: flags.includes('--user') ? 'user' : 'project', force: flags.includes('--force'), dryRun: flags.includes('--dry-run'), skill: fs.readFileSync(path.join(__dirname, '..', 'skills', 'hoq', 'SKILL.md'), 'utf8'), log: m => console.log(m) };
+  if (sub === 'install') {
+    const r = S.install(opts);
+    console.log(`${r.written.length} written, ${r.kept.length} kept, ${r.skipped.length} skipped · manifest ${r.manifest}`);
     console.log('Register the server too:  claude mcp add hoq -- node ' + path.join(__dirname, '..', 'mcp', 'server.js') + ' --file ./house.json');
-  }
-  else if (sub === 'uninstall') {
-    manifest.files.forEach(f => { if (fs.existsSync(f)) { fs.unlinkSync(f); console.log('removed', f); } });
-    manifest.sections.forEach(f => { if (!fs.existsSync(f)) return; const cur = fs.readFileSync(f, 'utf8'); const i = cur.indexOf(MARK0), j = cur.indexOf(MARK1); if (i >= 0 && j > i) { const rest = (cur.slice(0, i) + cur.slice(j + MARK1.length)).replace(/\n{3,}/g, '\n\n'); if (rest.trim()) { fs.writeFileSync(f, rest); console.log('removed the hoq section from', f); } else { fs.unlinkSync(f); console.log('removed', f, '(it held only the hoq section)'); } } });
-    if (fs.existsSync(manifestPath)) fs.unlinkSync(manifestPath);
-  }
-  else { console.error('skills: install, uninstall or list'); process.exit(1); }
+  } else if (sub === 'uninstall') { const r = S.uninstall(opts); console.log(`${r.removed.length} removed, ${r.kept.length} kept`); }
+  else if (sub === 'list') { const r = S.list(opts); console.log(r.entries.length ? r.entries.map(e => `${e.state.padEnd(7)} ${e.target.padEnd(10)} ${e.file}${e.kind === 'section' ? ' (section)' : ''}`).join('\n') + '\nmanifest ' + r.manifest : 'Nothing installed (' + r.manifest + ' absent). Targets: ' + S.TARGETS.join(', ') + ', all.'); }
+  else { console.error('skills: install, uninstall or list; --target claude|codex|cursor|copilot|gemini|agents-md|all; --project DIR or --user; --force; --dry-run'); process.exit(1); }
 }
 if (cmd === 'diag') {
   const { house } = loadHouse(a1);

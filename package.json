@@ -12,10 +12,11 @@
   "scripts": {
     "report": "node tools/hoq.js report examples/sample-house.json",
     "mcp": "node mcp/server.js",
-    "test": "node tools/test-core.js && node mcp/test-client.js"
+    "test": "node tools/test-core.js && node tools/test-skills.js && node mcp/test-client.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "zod": "^3.23.0"
+    "zod": "^4.0.0"
   }
 }

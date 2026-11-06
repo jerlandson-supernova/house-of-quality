@@ -314,7 +314,7 @@ function report(house, opts) {
 
 // ---------- provenance, proposals, the next cells, the Markdown report ----------
 const nowIso = () => new Date().toISOString();
-const PROPOSAL_KINDS = ['cell', 'roof', 'importance', 'today', 'goal'];
+const PROPOSAL_KINDS = ['cell', 'roof', 'importance', 'today', 'goal', 'need', 'characteristic'];
 /** The provenance key for a value: cell:W1|H2, roof:H1|H2 (canonical), importance:W1, today:W1, goal:W1. */
 function provKey(house, kind, a, b) {
   if (kind === 'cell') return 'cell:' + a + '|' + b;
@@ -326,6 +326,7 @@ function cleanProposal(house, p) {
   const q = { id: str(p.id), kind: p.kind, by: str(p.by), when: str(p.when) || nowIso(), note: str(p.note), evidence: str(p.evidence) };
   if (p.kind === 'cell') { if (!house.needs.some(w => w.id === p.need) || !house.characteristics.some(h => h.id === p.characteristic)) return null; const v = relValue(p.value); if (v === null) return null; q.need = p.need; q.characteristic = p.characteristic; q.value = v; }
   else if (p.kind === 'roof') { if (!house.characteristics.some(h => h.id === p.a) || !house.characteristics.some(h => h.id === p.b) || p.a === p.b) return null; const v = roofValue(p.value); if (v === null) return null; q.a = p.a; q.b = p.b; q.value = v; }
+  else if (p.kind === 'need' || p.kind === 'characteristic') { const f = p.fields && typeof p.fields === 'object' ? p.fields : {}; const text = str(f.need || f.name || f.text || p.value); if (!text) return null; q.fields = Object.assign({}, f); q.value = text; if (f.id && (house.needs.some(w => w.id === f.id) || house.characteristics.some(h => h.id === f.id))) return null; }
   else { if (!house.needs.some(w => w.id === p.need)) return null; const v = num(p.value, NaN); if (!(v >= 1 && v <= 5)) return null; q.need = p.need; q.value = clamp(v, 1, 5); }
   return q;
 }
@@ -345,12 +346,22 @@ function propose(house, p) {
   if (i >= 0) house.proposals[i] = q; else house.proposals.push(q);
   return { proposal: q, replaced: i >= 0 };
 }
-const targetOf = (house, q) => q.kind === 'cell' ? provKey(house, 'cell', q.need, q.characteristic) : q.kind === 'roof' ? provKey(house, 'roof', q.a, q.b) : q.kind + ':' + q.need;
-const describeProposal = q => q.kind === 'cell' ? `${q.need} × ${q.characteristic} = ${q.value || 'blank'}` : q.kind === 'roof' ? `roof ${q.a} ${q.value || 'none'} ${q.b}` : `${q.need} ${q.kind} = ${q.value}`;
+const targetOf = (house, q) => q.kind === 'cell' ? provKey(house, 'cell', q.need, q.characteristic) : q.kind === 'roof' ? provKey(house, 'roof', q.a, q.b) : (q.kind === 'need' || q.kind === 'characteristic') ? q.kind + ':' + str(q.value).toLowerCase().trim() : q.kind + ':' + q.need;
+const describeProposal = q => q.kind === 'cell' ? `${q.need} × ${q.characteristic} = ${q.value || 'blank'}` : q.kind === 'roof' ? `roof ${q.a} ${q.value || 'none'} ${q.b}` : q.kind === 'need' ? `new need: ${q.value}` : q.kind === 'characteristic' ? `new characteristic: ${q.value}${q.fields && q.fields.unit ? ' (' + q.fields.unit + ')' : ''}` : `${q.need} ${q.kind} = ${q.value}`;
+const nextFreeId = (house, prefix) => { let n = (prefix === 'W' ? house.needs : house.characteristics).length + 1; while (house.needs.some(x => x.id === prefix + n) || house.characteristics.some(x => x.id === prefix + n)) n++; return prefix + n; };
 /** A person confirms a proposal: the value is applied and the provenance records both who proposed and who confirmed. */
 function confirmProposal(house, id, confirmedBy) {
   const i = (house.proposals || []).findIndex(x => x.id === id); if (i < 0) return { error: 'No proposal ' + id };
   const q = house.proposals[i];
+  if (q.kind === 'need' || q.kind === 'characteristic') {
+    const f = Object.assign({}, q.fields || {}); if (!f.id) f.id = nextFreeId(house, q.kind === 'need' ? 'W' : 'H');
+    const tmp = normalize({ needs: q.kind === 'need' ? [f] : [{ id: 'W1', need: 'x' }], characteristics: q.kind === 'characteristic' ? [f] : [{ id: 'H1', name: 'x' }] }).house;
+    const row = q.kind === 'need' ? tmp.needs[0] : tmp.characteristics[0];
+    if (q.kind === 'need') { house.needs.push(row); house.relationships[row.id] = {}; } else house.characteristics.push(row);
+    setProvenance(house, q.kind, row.id, null, q.value, { by: q.by, confirmedBy: confirmedBy, note: q.note, evidence: q.evidence });
+    const target = targetOf(house, q); house.proposals = house.proposals.filter(x => x.id !== id && targetOf(house, x) !== target);
+    return { applied: q, dropped: [], added: row };
+  }
   if (q.kind === 'cell') { house.relationships[q.need] = house.relationships[q.need] || {}; if (q.value) house.relationships[q.need][q.characteristic] = q.value; else delete house.relationships[q.need][q.characteristic]; }
   else if (q.kind === 'roof') { const k = provKey(house, 'roof', q.a, q.b).slice(5); if (q.value) house.roof[k] = q.value; else delete house.roof[k]; }
   else { const w = house.needs.find(x => x.id === q.need); w[q.kind] = q.value; }

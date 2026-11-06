@@ -9,6 +9,10 @@
  *                  proposals that count in no number until a person confirms them, on the page or with proposal_confirm
  *   --no-confirm   remove proposal_confirm, so only a person on the page can confirm
  *   --anywhere     let the agent read and write files outside the house's folder (default: the folder of --file, or the current directory)
+ *   --assist [P]   add the optional model-backed assist tools (assist_status, assist_suggest, assist_members). They only propose.
+ *                  P names the provider (anthropic or mock) and beats HOQ_ASSIST_PROVIDER.
+ *                  Provider HOQ_ASSIST_PROVIDER=anthropic (default; credentials from ANTHROPIC_API_KEY or `ant auth login`) or mock;
+ *                  model HOQ_ASSIST_MODEL (default claude-opus-5-5); HOQ_ASSIST_MAX_CELLS (default 12).
  *
  * Add it to Claude Code:   claude mcp add hoq -- node /path/to/house-of-quality/mcp/server.js --file ./house.json
  * The tools wrap web/hoq-core.js, the same code the page and the CLI run. docs/agent.md says how an agent should run a session.
@@ -29,6 +33,7 @@ const ACTOR = argOf('--actor', process.env.HOQ_ACTOR || 'agent');
 const DIRECT = args.includes('--direct');
 const CAN_CONFIRM = !args.includes('--no-confirm');
 const ANYWHERE = args.includes('--anywhere');
+const ASSIST = args.includes('--assist') ? require(path.join(__dirname, 'assist.js')).createAssist({ provider: argOf('--assist', '') || process.env.HOQ_ASSIST_PROVIDER || 'anthropic', model: process.env.HOQ_ASSIST_MODEL, maxCells: +(process.env.HOQ_ASSIST_MAX_CELLS || 12) }) : null;
 // Files the agent may read or write: inside the house's folder unless --anywhere. A refused path is an error the agent can read.
 const baseDir = () => filePath ? path.dirname(filePath) : process.cwd();
 function safePath(p) { const abs = path.resolve(p); if (ANYWHERE) return abs; const base = baseDir(); if (abs === base || abs.startsWith(base + path.sep)) return abs; throw new Error('Path ' + abs + ' is outside the house folder ' + base + '. Use a path inside it, or start the server with --anywhere.'); }
@@ -60,7 +65,7 @@ const nextId = (prefix, list) => { let n = list.length + 1; while (house.needs.s
 const CONFIRM_HINT = 'It counts in no number until a person confirms it, on the page (Input tab, Proposals) or with proposal_confirm.';
 
 const server = new McpServer({ name: 'house-of-quality', version: '0.3.0' }, {
-  instructions: `Build and read a House of Quality (QFD). Start with house_new or house_open; add needs (rows: the stakeholder's words, a source, an importance 1 to 5 that the stakeholder gives) and characteristics (columns: a unit, a direction, a target); then the room with relationship_set (9 strong, 3 medium, 1 weak) and the roof with roof_set. ${DIRECT ? 'This server lets you write cells and roof pairs directly; say in "note" why and in "evidence" on what.' : 'Cells and roof pairs you set become proposals: a person confirms them on the page or with proposal_confirm (give the person\'s name). Use house_next to find the cells worth proposing.'} Read house_priorities, house_diagonal and house_items; house_markdown is the report to hand to a person; house_export writes the dated TSV, the version of record. Importance belongs to the stakeholders, gates are never ranked. See docs/agent.md in the repository.` });
+  instructions: `${ASSIST ? 'The assist tools (assist_suggest, assist_members) ask a model for suggestions; everything they return is a proposal for a person to confirm. ' : ''}Build and read a House of Quality (QFD). Start with house_new or house_open; add needs (rows: the stakeholder's words, a source, an importance 1 to 5 that the stakeholder gives) and characteristics (columns: a unit, a direction, a target); then the room with relationship_set (9 strong, 3 medium, 1 weak) and the roof with roof_set. ${DIRECT ? 'This server lets you write cells and roof pairs directly; say in "note" why and in "evidence" on what.' : 'Cells and roof pairs you set become proposals: a person confirms them on the page or with proposal_confirm (give the person\'s name). Use house_next to find the cells worth proposing.'} Read house_priorities, house_diagonal and house_items; house_markdown is the report to hand to a person; house_export writes the dated TSV, the version of record. Importance belongs to the stakeholders, gates are never ranked. See docs/agent.md in the repository.` });
 
 // ---------- the house ----------
 server.registerTool('house_new', { title: 'Start a new house', description: 'Start an empty House of Quality with a title. Replaces the current house (save it first if it matters).',
@@ -142,6 +147,23 @@ server.registerTool('proposal_reject', { title: 'Reject a proposal', description
 server.registerTool('house_next', { title: 'What to fill next', description: 'The empty cells worth looking at, ranked: needs nothing serves, needs with no strong driver, characteristics driving nothing, then by weight. Most cells of a good house stay blank, so this names the structural gaps, not every empty cell.',
   inputSchema: { limit: z.number().int().min(1).max(50).default(10) } },
   async ({ limit }) => text(H.nextCells(house, limit)));
+
+// ---------- optional assist: a model suggests, a person confirms ----------
+if (ASSIST) {
+  const assistActor = 'assist:' + ASSIST.model;
+  server.registerTool('assist_status', { title: 'Assist status', description: 'Which provider and model the assist uses, and its limits. The assist only proposes; nothing it says counts until a person confirms it.', inputSchema: {} },
+    async () => text({ provider: ASSIST.provider, model: ASSIST.model, maxCellsPerCall: ASSIST.maxCells, actor: assistActor, writes: 'proposals only' }));
+  server.registerTool('assist_suggest', { title: 'Ask the model to suggest cell values', description: 'For the empty cells worth looking at (house_next, or the cells you name), ask the model for 9/3/1/0 with a one-line reason. Each non-blank suggestion becomes a proposal for a person to confirm; blanks are reported, not recorded. Bounded to maxCellsPerCall.',
+    inputSchema: { cells: z.array(z.object({ need: z.string(), characteristic: z.string() })).optional().describe('cells to rate; default: the top cells from house_next'), limit: z.number().int().min(1).max(50).optional() } },
+    async ({ cells, limit }) => { try { const r = await ASSIST.suggest(house, cells || (limit ? H.nextCells(house, limit).cells.map(c => ({ need: c.need, characteristic: c.characteristic })) : null), assistActor);
+      return after('assist.suggest', `${r.proposed.length} proposal${r.proposed.length === 1 ? '' : 's'} from ${ASSIST.model}: ${r.proposed.map(p => p.id + ' ' + H.describeProposal(p) + (p.note ? ' (' + p.note + ')' : '')).join('; ') || 'none'}.` + (r.blank && r.blank.length ? ` Suggested blank: ${r.blank.join(', ')}.` : '') + (r.dropped ? ` ${r.dropped} unusable answers dropped.` : '') + ` Usage: ${JSON.stringify(r.usage)}. ${CONFIRM_HINT}`, { usage: r.usage }); }
+      catch (e) { return fail('assist_suggest failed: ' + e.message); } });
+  server.registerTool('assist_members', { title: 'Ask the model to extract needs or characteristics from text', description: 'Give it interview notes, a survey, a review or a spec; it proposes needs (in the source\'s words, with the excerpt) or characteristics (only ones with a unit). Each becomes a proposal for a person to confirm.',
+    inputSchema: { kind: z.enum(['needs', 'characteristics']), text: z.string().min(10).describe('the source text, up to about 20,000 characters') } },
+    async ({ kind, text: src }) => { try { const r = await ASSIST.members(house, kind, src, assistActor);
+      return after('assist.members', `${r.proposed.length} proposed ${kind} from ${ASSIST.model}: ${r.proposed.map(p => p.id + ' ' + H.describeProposal(p)).join('; ') || 'none'}. Usage: ${JSON.stringify(r.usage)}. ${CONFIRM_HINT}`, { usage: r.usage }); }
+      catch (e) { return fail('assist_members failed: ' + e.message); } });
+}
 
 // ---------- items ----------
 server.registerTool('item_set', { title: 'Add or update a work item', description: 'A ticket or task the links fields point at: status, due date, effort and your own test verdict.',

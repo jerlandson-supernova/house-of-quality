@@ -27,6 +27,10 @@ The server (`node mcp/server.js --file house.json`, from github.com/jerlandson-s
 - A board status is a claim. Add `tested` to an item only from evidence you have seen.
 - The page is for working; the dated TSV is what people cite. Page edits reach no one.
 
+## If the server runs with --assist
+
+`assist_suggest` asks a model for cell values on the structural gaps, `assist_members` extracts needs or characteristics from a text the person gives you. Both return proposals only, by the actor `assist:<model>`. Read the model's reasons out to the person before they confirm; never confirm a model's suggestion yourself.
+
 ## Tools at a glance
 
 `house_new` · `house_open` · `house_save` · `house_summary` · `house_get` · `house_validate` · `house_log` · `need_set` · `need_remove` · `characteristic_set` · `characteristic_remove` · `relationship_set` · `relationships_set_many` · `roof_set` · `propose` · `proposals_list` · `proposal_confirm` · `proposal_reject` · `house_next` · `item_set` · `item_remove` · `status_scale_set` · `house_report` · `house_markdown` · `house_priorities` · `house_diagonal` · `house_items` · `house_draw` · `house_export`
