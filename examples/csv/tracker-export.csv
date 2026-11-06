@@ -1,0 +1,10 @@
+﻿Summary,Issue key,Issue id,Issue Type,Status,Project key,Priority,Resolution,Assignee,Reporter,Created,Updated,Resolved,Due date,Custom field (Story point estimate),Sprint,Sprint,Labels
+Thicker vacuum wall and a new seal at the neck,MUG-1,10001,Story,In Progress,MUG,High,,A. Smith,J. Doe,01/Oct/26 9:00 AM,05/Nov/26 4:40 PM,,20/Nov/26 12:00 AM,5,Sprint 3,Sprint 4,thermal
+Double-wall tooling for the body,MUG-2,10002,Story,Done,MUG,High,Done,A. Smith,J. Doe,01/Oct/26 9:00 AM,28/Oct/26 9:12 AM,28/Oct/26 9:12 AM,30/Oct/26 12:00 AM,8,Sprint 2,Sprint 3,tooling
+Silicone lid gasket and a leak test rig,MUG-3,10003,Story,Done,MUG,Highest,Done,B. Lee,J. Doe,03/Oct/26 2:00 PM,06/Nov/26 8:02 AM,06/Nov/26 8:02 AM,10/Nov/26 9:00 AM,3,Sprint 4,,gate
+Taper the base to 72 mm,MUG-4,10004,Task,In Progress,MUG,Medium,,C. Kim,J. Doe,05/Oct/26 10:00 AM,05/Nov/26 11:20 AM,,15/Nov/26 12:00 AM,1,Sprint 4,,
+One-handed flip lid,MUG-5,10005,Story,In Review,MUG,High,,B. Lee,J. Doe,05/Oct/26 10:00 AM,06/Nov/26 7:45 AM,,25/Nov/26 12:00 AM,5,Sprint 4,,
+"Three-part lid, dishwasher safe",MUG-6,10006,Story,To Do,MUG,Medium,,,J. Doe,05/Oct/26 10:00 AM,20/Oct/26 3:00 PM,,05/Dec/26 12:00 AM,3,,,
+Rubber base ring,MUG-7,10007,Task,Done,MUG,Low,Done,C. Kim,J. Doe,05/Oct/26 10:00 AM,04/Nov/26 3:30 PM,25/Oct/26 5:00 PM,25/Oct/26 12:00 AM,2,Sprint 3,,
+Second-source the stainless blank,MUG-8,10008,Task,In Progress,MUG,Medium,,D. Park,J. Doe,10/Oct/26 9:00 AM,03/Nov/26 1:15 PM,,30/Nov/26 12:00 AM,3,Sprint 4,,cost
+Marketing launch page,MUG-99,10099,Task,To Do,MUG,Low,,,J. Doe,01/Nov/26 9:00 AM,01/Nov/26 9:00 AM,,15/Dec/26 12:00 AM,2,,,

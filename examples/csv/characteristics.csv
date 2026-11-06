@@ -1,4 +1,4 @@
-id,name,short,unit,direction,target,target_short,today,today_short,links,difficulty,gate
+﻿id,name,short,unit,direction,target,target_short,today,today_short,links,difficulty,gate
 H1,Temperature after two hours at 20 °C room temperature,Temperature after 2 h,°C,↑,≥ 70 °C from a 90 °C fill,≥ 70 °C,61 °C on the prototype,61 °C,MUG-1,4,
 H2,Vacuum wall thickness,Wall thickness,mm,◎,"Double wall, 1.5 mm each, vacuum between",1.5 mm,1.2 mm,1.2 mm,"MUG-1, MUG-2",3,
 H3,"Leak test: pressure held with the lid closed, mug on its side",Leak test pressure,kPa,↑,≥ 30 kPa for 10 minutes,≥ 30 kPa,Fails at 12 kPa,12 kPa,MUG-3,3,yes

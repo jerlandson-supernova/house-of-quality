@@ -1,4 +1,4 @@
-id,need,short,source,importance,today,goal,links,why
+﻿id,need,short,source,importance,today,goal,links,why
 W1,Coffee is still hot two hours after filling,Hot for two hours,Commuter survey,5,3,5,"MUG-1, MUG-2",The most common complaint about the current prototype.
 W2,"Nothing leaks into a bag, even lying on its side",Never leaks,Returns data,5,2,5,MUG-3,Leaks are the top reason for returns.
 W3,Fits the cup holder of a small car,Fits a cup holder,Dealer feedback,3,4,5,MUG-4,

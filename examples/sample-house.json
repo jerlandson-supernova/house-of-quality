@@ -47,14 +47,14 @@
     "H1|H2": "++", "H2|H6": "+", "H2|H9": "−", "H2|H10": "−", "H3|H5": "−", "H3|H7": "−", "H7|H9": "+", "H8|H10": "−", "H4|H10": "+"
   },
   "items": {
-    "MUG-1": { "title": "Thicker vacuum wall and a new seal at the neck", "status": "In Progress", "due": "2026-11-20", "effort": 5, "tested": "partial", "note": "Second prototype holds 66 °C at two hours; target is 70." },
-    "MUG-2": { "title": "Double-wall tooling for the body", "status": "Done", "due": "2026-10-30", "effort": 8, "tested": "verified", "note": "Tooling accepted on the 28 Oct sample." },
-    "MUG-3": { "title": "Silicone lid gasket and a leak test rig", "status": "In Review", "due": "2026-11-01", "effort": 3, "tested": "failed", "note": "Rig built; the gasket still fails at 12 kPa on its side." },
+    "MUG-1": { "title": "Thicker vacuum wall and a new seal at the neck", "status": "In Progress", "due": "2026-11-20", "effort": 5, "tested": "partial", "retested": "2026-11-03", "note": "Second prototype holds 66 °C at two hours; target is 70." },
+    "MUG-2": { "title": "Double-wall tooling for the body", "status": "Done", "due": "2026-10-30", "effort": 8, "tested": "verified", "retested": "2026-10-30", "updated": "2026-10-28T17:12:00.000Z", "note": "Tooling accepted on the 28 Oct sample." },
+    "MUG-3": { "title": "Silicone lid gasket and a leak test rig", "status": "In Review", "due": "2026-11-01", "effort": 3, "tested": "fails", "retested": "2026-11-04", "note": "Rig built; the gasket still fails at 12 kPa on its side." },
     "MUG-4": { "title": "Taper the base to 72 mm", "status": "To Do", "due": "2026-11-15", "effort": 1, "tested": "not built", "note": "" },
-    "MUG-5": { "title": "One-handed flip lid", "status": "In Progress", "due": "2026-11-25", "effort": 5, "tested": "not retested", "note": "" },
+    "MUG-5": { "title": "One-handed flip lid", "status": "In Progress", "due": "2026-11-25", "effort": 5, "tested": "", "note": "" },
     "MUG-6": { "title": "Three-part lid, dishwasher safe", "status": "To Do", "due": "2026-12-05", "effort": 3, "tested": "not built", "note": "" },
-    "MUG-7": { "title": "Rubber base ring", "status": "Done", "due": "2026-10-25", "effort": 2, "tested": "partial", "note": "4 of 5 drops survived; the fifth cracked the lid, not the body." },
-    "MUG-8": { "title": "Second-source the stainless blank", "status": "In Progress", "due": "2026-11-30", "effort": 3, "tested": "not retested", "note": "" }
+    "MUG-7": { "title": "Rubber base ring", "status": "Done", "due": "2026-10-25", "effort": 2, "tested": "partial", "retested": "2026-10-29", "updated": "2026-11-04T23:30:00.000Z", "note": "4 of 5 drops survived; the fifth cracked the lid, not the body. Changed on the board after the test." },
+    "MUG-8": { "title": "Second-source the stainless blank", "status": "In Progress", "due": "2026-11-30", "effort": 3, "tested": "", "note": "" }
   },
   "statusScale": { "To Do": 0, "In Progress": 0.35, "In Review": 0.6, "Staging": 0.8, "Done": 1 },
   "blockNames": {},
@@ -65,7 +65,7 @@
       ["MUG-5", "The one-handed lid, which also loads the leak test."]
     ],
     "findings": [
-      "MUG-7 is Done on the board but passed 4 of 5 drops; the lid cracked, which belongs to MUG-5.",
+      "MUG-7 is Done on the board but passed 4 of 5 drops; the lid cracked, which belongs to MUG-5. The board changed it again after that test, so it needs a retest.",
       "MUG-3 is In Review while the gate still fails: review is not a pass."
     ]
   }

@@ -1,9 +1,9 @@
-key,title,status,due,effort,tested,note
-MUG-1,Thicker vacuum wall and a new seal at the neck,In Progress,2026-11-20,5,partial,Second prototype holds 66 °C at two hours; target is 70.
-MUG-2,Double-wall tooling for the body,Done,2026-10-30,8,verified,Tooling accepted on the 28 Oct sample.
-MUG-3,Silicone lid gasket and a leak test rig,In Review,2026-11-01,3,failed,Rig built; the gasket still fails at 12 kPa on its side.
-MUG-4,Taper the base to 72 mm,To Do,2026-11-15,1,not built,
-MUG-5,One-handed flip lid,In Progress,2026-11-25,5,not retested,
-MUG-6,"Three-part lid, dishwasher safe",To Do,2026-12-05,3,not built,
-MUG-7,Rubber base ring,Done,2026-10-25,2,partial,"4 of 5 drops survived; the fifth cracked the lid, not the body."
-MUG-8,Second-source the stainless blank,In Progress,2026-11-30,3,not retested,
+﻿key,title,status,due,effort,tested,retested,updated,note
+MUG-1,Thicker vacuum wall and a new seal at the neck,In Progress,2026-11-20,5,partial,2026-11-03,,Second prototype holds 66 °C at two hours; target is 70.
+MUG-2,Double-wall tooling for the body,Done,2026-10-30,8,verified,2026-10-30,2026-10-28T17:12:00.000Z,Tooling accepted on the 28 Oct sample.
+MUG-3,Silicone lid gasket and a leak test rig,In Review,2026-11-01,3,fails,2026-11-04,,Rig built; the gasket still fails at 12 kPa on its side.
+MUG-4,Taper the base to 72 mm,To Do,2026-11-15,1,not built,,,
+MUG-5,One-handed flip lid,In Progress,2026-11-25,5,,,,
+MUG-6,"Three-part lid, dishwasher safe",To Do,2026-12-05,3,not built,,,
+MUG-7,Rubber base ring,Done,2026-10-25,2,partial,2026-10-29,2026-11-04T23:30:00.000Z,"4 of 5 drops survived; the fifth cracked the lid, not the body. Changed on the board after the test."
+MUG-8,Second-source the stainless blank,In Progress,2026-11-30,3,,,,

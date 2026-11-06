@@ -14,7 +14,17 @@ const SYM = { 0: '', 1: '△', 3: '○', 9: '●' };
 const WORD = { 0: 'none', 1: 'weak (1)', 3: 'medium (3)', 9: 'strong (9)' };
 const ROOF_WORD = { '++': 'Strong positive: improving one strongly helps the other', '+': 'Positive: helps', '−': 'Trade-off: improving one tends to hurt the other', '−−': 'Strong trade-off' };
 const DEFAULT_STATUS_SCALE = { 'To Do': 0, 'In Progress': 0.35, 'In Review': 0.6, 'Staging': 0.8, 'Done': 1 };
-const TESTED_CLASSES = { verified: 'Verified', partial: 'Partial', failed: 'Fails the bar', 'not built': 'Not built', 'not retested': 'Not retested' };
+// One verdict scale everywhere: what the owner's own test said about an item. 'retested' holds the date of that test.
+const TESTED_CLASSES = { verified: 'Verified', partial: 'Partial', fails: 'Fails', 'not built': 'Not built' };
+// Older spellings still load: failed → fails silently; 'not retested' is no longer a verdict (the date in retested says when the test was) and is dropped with a warning.
+const TESTED_ALIASES = { failed: 'fails', fail: 'fails', 'fails the bar': 'fails', 'not retested': '' };
+/** A tested value as it should be stored: {value, dropped} where dropped is the original text when it was not kept. */
+function testedValue(v) {
+  const t = str(v).toLowerCase().trim();
+  if (t === '' || t in TESTED_CLASSES) return { value: t, dropped: '' };
+  if (t in TESTED_ALIASES) return { value: TESTED_ALIASES[t], dropped: TESTED_ALIASES[t] ? '' : t };
+  return { value: '', dropped: t };
+}
 
 const num = (v, d) => { const n = typeof v === 'number' ? v : parseFloat(v); return Number.isFinite(n) ? n : d; };
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Math.round(v)));
@@ -24,7 +34,7 @@ const truthy = v => v === true || /^(1|true|yes|y|gate|x)$/i.test(str(v).trim())
 
 // ---------- the house: shape, defaults, validation ----------
 function blank() {
-  return { title: 'House of Quality', subtitle: '', meta: { date: '', author: '', todayLabel: 'today', scale: '1 poor to 5 excellent', notes: [] },
+  return { title: 'House of Quality', subtitle: '', meta: { date: '', author: '', todayLabel: 'today', scale: '1 poor to 5 excellent', notes: [], boardRead: '', boardSource: '' },
     needs: [], characteristics: [], relationships: {}, roof: {}, items: {}, statusScale: Object.assign({}, DEFAULT_STATUS_SCALE), blockNames: {}, narrative: {},
     revision: 0, provenance: {}, proposals: [], proposalSeq: 0 };
 }
@@ -38,6 +48,7 @@ function normalize(input) {
   h.title = str(src.title) || h.title; h.subtitle = str(src.subtitle);
   h.meta = Object.assign(h.meta, src.meta || {});
   if (!Array.isArray(h.meta.notes)) h.meta.notes = [];
+  h.meta.boardRead = isoDateTime(h.meta.boardRead); h.meta.boardSource = str(h.meta.boardSource);
   h.needs = (src.needs || src.whats || []).map((w, i) => ({
     id: str(w.id).trim() || 'W' + (i + 1), need: str(w.need || w.name || w.text), short: str(w.short) || str(w.need || w.name || w.text).slice(0, 48),
     source: str(w.source ?? w.src), importance: clamp(num(w.importance ?? w.imp, 3), 1, 5), today: clamp(num(w.today ?? w.now, 1), 1, 5),
@@ -84,8 +95,13 @@ function normalize(input) {
   const items = src.items || {};
   (Array.isArray(items) ? items : Object.keys(items).map(k => Object.assign({ key: k }, items[k]))).forEach(it => {
     const key = str(it.key || it.id).trim(); if (!key) return;
-    const tested = str(it.tested).toLowerCase().trim();
-    h.items[key] = { title: str(it.title || it.summary), status: str(it.status), due: str(it.due), effort: str(it.effort ?? it.points), tested: tested in TESTED_CLASSES ? tested : '', note: str(it.note) };
+    const tv = testedValue(it.tested);
+    if (tv.dropped === 'not retested') warnings.push('Item ' + key + ': "not retested" is no longer a verdict and was left empty; record the date of the last test in retested.');
+    else if (tv.dropped) warnings.push('Item ' + key + ': tested "' + tv.dropped + '" is not verified, partial, fails or not built and was left empty.');
+    const retested = isoDate(it.retested);
+    if (str(it.retested).trim() && !retested) warnings.push('Item ' + key + ': retested "' + str(it.retested).trim() + '" is not a date and was left empty.');
+    h.items[key] = { title: str(it.title || it.summary), status: str(it.status).trim(), due: isoDate(it.due) || str(it.due).trim(), effort: str(it.effort ?? it.points), tested: tv.value, retested,
+      updated: isoDateTime(it.updated), resolved: isoDateTime(it.resolved), priority: str(it.priority), sprint: str(it.sprint), note: str(it.note) };
   });
   h.statusScale = Object.keys(src.statusScale || {}).length ? mapNum(src.statusScale) : Object.assign({}, DEFAULT_STATUS_SCALE);
   Object.keys(h.items).forEach(k => { const s = h.items[k].status; if (s && !(s in h.statusScale)) { warnings.push('Item ' + k + ' has status "' + s + '" which is not in statusScale; it counts as 0 progress.'); } });
@@ -140,14 +156,14 @@ function relMatrix(house, use) {
 function linksOf(text, items) {
   const out = [];
   str(text).split(';').forEach(seg => {
-    const m = seg.match(/^\s*([A-Za-z][\w.]*)-(\d+)(.*)$/);
-    if (m) {
-      const proj = m[1]; const nums = []; const re = /(\d+)(?:\s+to\s+(\d+))?/g; let t;
-      while ((t = re.exec(m[2] + m[3]))) { const a = +t[1], b = t[2] ? +t[2] : 0; if (b) for (let x = a; x <= b; x++) nums.push(x); else nums.push(a); }
-      nums.forEach(n => out.push(proj + '-' + n));
-    } else if (items) {
-      seg.split(',').map(s => s.trim()).forEach(tok => { if (tok && items[tok]) out.push(tok); });
+    // A full key sets the project for the bare numbers and ranges that follow it in the segment; another full key ("MUG-1 with KAN-2") switches it.
+    const re = /(?<![\w.-])(?:([A-Za-z][\w.]*)-)?(\d+)(?:\s+to\s+(\d+))?(?![\w-])/g; let proj = '', t;
+    while ((t = re.exec(seg))) {
+      if (t[1]) proj = t[1]; else if (!proj) continue;
+      const a = +t[2], b = t[3] ? +t[3] : 0;
+      if (b >= a) for (let x = a; x <= b; x++) out.push(proj + '-' + x); else out.push(proj + '-' + a);
     }
+    if (items) seg.split(',').map(s => s.trim()).forEach(tok => { if (tok && items[tok]) out.push(tok); });
   });
   return [...new Set(out)];
 }
@@ -170,21 +186,180 @@ function progress(house, C) {
   let jw = 0, jp = 0;
   house.characteristics.forEach((h, j) => { const t = linksOf(h.links, house.items).filter(k => house.items[k]); if (!t.length) return; jw += C.abs[j]; jp += C.abs[j] * t.reduce((s, k) => s + (house.statusScale[house.items[k].status] || 0), 0) / t.length; });
   const counts = {}; Object.values(house.items).forEach(it => { counts[it.status || '(none)'] = (counts[it.status || '(none)'] || 0) + 1; });
-  const asOf = house.meta.date || new Date().toISOString().slice(0, 10);
+  const A = asOfDate(house); const asOf = A.date;
   const late = Object.keys(house.items).filter(k => { const it = house.items[k]; return it.due && it.due < asOf && (house.statusScale[it.status] || 0) < 1; });
   const effortAll = Object.values(house.items).reduce((s, it) => s + (num(it.effort, 0)), 0);
   const effortLeft = Object.values(house.items).filter(it => (house.statusScale[it.status] || 0) < 1).reduce((s, it) => s + num(it.effort, 0), 0);
-  return { rightWall, statusWeighted: jw ? jp / jw : null, coverage: jw / (C.total || 1), counts, late, asOf, effortAll, effortLeft, itemCount: Object.keys(house.items).length };
+  return { rightWall, statusWeighted: jw ? jp / jw : null, coverage: jw / (C.total || 1), counts, late, asOf, asOfSource: A.source, effortAll, effortLeft, itemCount: Object.keys(house.items).length };
 }
 
-/** Board status read against the owner's own test verdict: is it really done? */
+// ---------- dates: the local calendar date is "today"; lateness is judged against the day the board was read ----------
+const pad2 = n => String(n).padStart(2, '0');
+const MONTHS = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+/** The local calendar date of a Date (or anything Date accepts) as YYYY-MM-DD; '' when it is not a date. */
+function localDate(d) { d = d instanceof Date ? d : new Date(d); return Number.isNaN(d.getTime()) ? '' : d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+const todayLocal = () => localDate(new Date());
+/** Parse a date or date-time text into a Date, or null. Accepts ISO forms (a zone like +0000 included) and Jira's export form
+ *  "05/Nov/26 2:14 PM" (read as a local time, since the export carries no zone). */
+function parseDate(s) {
+  s = str(s).trim(); if (!s) return null;
+  const j = s.match(/^(\d{1,2})\/([A-Za-z]{3})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp][Mm])?)?$/);
+  if (j && MONTHS[j[2].toLowerCase()] !== undefined) {
+    let y = +j[3]; if (y < 100) y += 2000; let hh = j[4] ? +j[4] : 0; const ap = j[7] ? j[7].toUpperCase() : '';
+    if (ap === 'PM' && hh < 12) hh += 12; if (ap === 'AM' && hh === 12) hh = 0;
+    return new Date(y, MONTHS[j[2].toLowerCase()], +j[1], hh, j[5] ? +j[5] : 0, j[6] ? +j[6] : 0);
+  }
+  const d = new Date(s.replace(/([+-]\d{2})(\d{2})$/, '$1:$2'));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+/** A calendar date as YYYY-MM-DD: a bare date stays as written; a date-time (ISO or Jira's export form) becomes its local date; '' when unreadable. */
+function isoDate(s) {
+  s = str(s).trim(); if (!s) return '';
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (m) return s;
+  const d = parseDate(s); return d ? localDate(d) : '';
+}
+/** An instant as an ISO string (toISOString); a bare YYYY-MM-DD stays a date; unreadable text is kept as typed, trimmed. */
+function isoDateTime(s) {
+  s = str(s).trim(); if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = parseDate(s); return d ? d.toISOString() : s;
+}
+/** The day "past due" is judged against, with where it came from: the day the board was read, else the data date, else today. */
+function asOfDate(house) {
+  const m = (house && house.meta) || {};
+  if (m.boardRead && isoDate(m.boardRead)) return { date: isoDate(m.boardRead), source: 'board read' };
+  if (m.date && isoDate(m.date)) return { date: isoDate(m.date), source: 'data date' };
+  return { date: todayLocal(), source: 'today' };
+}
+/** Has the tracker changed the item since the owner last tested it? Needs both dates. */
+const isStale = it => !!(it && it.updated && it.retested && isoDate(it.updated) > it.retested);
+const daysBetween = (a, b) => { const A = isoDate(a), B = isoDate(b); if (!A || !B) return 0; const [y1, m1, d1] = A.split('-').map(Number), [y2, m2, d2] = B.split('-').map(Number); return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000); };
+
+/** Board status read against the owner's own test verdict: is it really done? Returns [text, class] with class ok, warn, bad or mute. */
 function reallyDone(house, status, tested) {
   const p = house.statusScale[status]; const done = p === 1, far = p !== undefined && p >= 0.8;
-  if (done) { if (tested === 'verified') return ['holds', 'ok']; if (tested === 'partial') return ['done, open clauses', 'warn']; if (tested === 'failed' || tested === 'not built') return ['overstated', 'bad']; return ['not retested', 'mute']; }
-  if (far) { if (tested === 'verified') return ['holds so far', 'ok']; if (tested === 'failed') return ['not yet', 'bad']; if (tested === 'partial') return ['partly', 'warn']; return ['not retested', 'mute']; }
+  if (!tested) return ['no test yet', 'mute'];
+  if (done) { if (tested === 'verified') return ['holds', 'ok']; if (tested === 'partial') return ['done, open clauses', 'warn']; return ['overstated', 'bad']; }
+  if (far) { if (tested === 'verified') return ['holds so far', 'ok']; if (tested === 'partial') return ['partly', 'warn']; if (tested === 'fails') return ['not yet', 'bad']; return ['overstated', 'bad']; }
   if (tested === 'verified') return ['understated', 'ok'];
-  if (tested === 'failed') return ['not yet', 'bad'];
+  if (tested === 'fails') return ['not yet', 'bad'];
   return ['matches', 'mute'];
+}
+const MISMATCH_KIND = { 'overstated': 'overstated', 'done, open clauses': 'open clauses', 'partly': 'partly', 'not yet': 'not yet', 'understated': 'understated' };
+const MISMATCH_ORDER = ['overstated', 'not yet', 'open clauses', 'partly', 'understated', 'stale'];
+
+/** Everything the daily screen shows, as data: gates, the path, where the board and the tests disagree, what is overdue, the
+ *  full table and the counts. C is compute() over the listed order. Pure: the page, the CLI and the server all read this. */
+function boardFacts(house, C) {
+  C = C || compute(house.needs, house.characteristics, house.relationships, {});
+  const items = house.items || {}, scale = house.statusScale || {};
+  const A = asOfDate(house); const asOf = A.date;
+  const P = progress(house, C); const T = itemShares(house, C);
+  const wgt = st => scale[st]; const isDone = st => wgt(st) === 1;
+  const share = k => T.shares[k] ? T.shares[k] / (T.total || 1) : 0;
+  const rd = it => reallyDone(house, it.status, it.tested);
+  const isLate = it => !!(it.due && it.due < asOf && (wgt(it.status) || 0) < 1);
+  const gates = house.characteristics.filter(h => h.gate).map(h => {
+    const keys = linksOf(h.links, items).filter(k => items[k]);
+    const list = keys.map(k => { const it = items[k]; const r = rd(it); return { key: k, title: it.title, status: it.status, weight: wgt(it.status) === undefined ? null : wgt(it.status), due: it.due, late: isLate(it), tested: it.tested, retested: it.retested, stale: isStale(it), verdict: r[0], verdictClass: r[1] }; });
+    const state = !list.length ? 'no item' : list.every(x => x.weight === 1 && x.tested === 'verified') ? 'clear' : 'blocked';
+    return { id: h.id, short: h.short || h.name, name: h.name, today: h.today, target: h.target, state, items: list };
+  });
+  const cp = (house.narrative && Array.isArray(house.narrative.criticalPath)) ? house.narrative.criticalPath : [];
+  const openKey = k => !items[k] || !isDone(items[k].status);
+  let path;
+  if (cp.length) path = { source: 'narrative', steps: cp.map(([label, text]) => { const keys = linksOf(label, items); return { label: str(label), text: str(text), keys, open: keys.length ? keys.some(openKey) : true, share: keys.reduce((s, k) => s + share(k), 0) }; }) };
+  else path = { source: 'shares', steps: T.keys.filter(k => openKey(k)).slice(0, 7).map(k => ({ label: k, text: (items[k] || {}).title || '', keys: [k], open: true, share: share(k) })) };
+  path.firstOpen = path.steps.findIndex(s => s.open);
+  const noItem = house.characteristics.map((h, j) => ({ h, j })).filter(x => !linksOf(x.h.links, items).length).map(x => ({ id: x.h.id, short: x.h.short || x.h.name, share: C.pct[x.j], links: x.h.links }));
+  const rows = T.keys.map(k => { const it = items[k] || { title: '', status: '', due: '', effort: '', tested: '', retested: '', updated: '', note: '' }; const r = rd(it);
+    return { key: k, known: !!items[k], title: it.title || '', share: share(k), serves: [...(T.chars[k] || []).map(h => ({ id: h.id, gate: !!h.gate })), ...(T.needs[k] || []).map(w => ({ id: w.id, need: true }))],
+      status: it.status || '', weight: wgt(it.status) === undefined ? null : wgt(it.status), due: it.due || '', late: isLate(it), daysLate: isLate(it) ? daysBetween(it.due, asOf) : 0, effort: it.effort || '', tested: it.tested || '', testedLabel: TESTED_CLASSES[it.tested] || '',
+      retested: it.retested || '', updated: it.updated || '', stale: isStale(it), verdict: r[0], verdictClass: r[1], note: it.note || '' }; });
+  Object.keys(items).forEach(k => { if (!T.keys.includes(k)) { const it = items[k]; const r = rd(it); rows.push({ key: k, known: true, title: it.title, share: 0, serves: [], status: it.status, weight: wgt(it.status) === undefined ? null : wgt(it.status), due: it.due, late: isLate(it), daysLate: isLate(it) ? daysBetween(it.due, asOf) : 0, effort: it.effort, tested: it.tested, testedLabel: TESTED_CLASSES[it.tested] || '', retested: it.retested, updated: it.updated, stale: isStale(it), verdict: r[0], verdictClass: r[1], note: it.note }); } });
+  const mismatch = rows.filter(r => r.known && (MISMATCH_KIND[r.verdict] || r.stale)).map(r => Object.assign({ kind: MISMATCH_KIND[r.verdict] || 'stale' }, r))
+    .sort((a, b) => MISMATCH_ORDER.indexOf(a.kind) - MISMATCH_ORDER.indexOf(b.kind) || b.share - a.share || a.key.localeCompare(b.key, undefined, { numeric: true }));
+  const overdue = rows.filter(r => r.known && r.late).sort((a, b) => a.due.localeCompare(b.due) || b.share - a.share);
+  const known = rows.filter(r => r.known);
+  const counts = { items: Object.keys(items).length, linked: T.keys.length, done: known.filter(r => r.weight === 1).length, doneVerified: known.filter(r => r.weight === 1 && r.tested === 'verified').length,
+    doneOpen: known.filter(r => r.weight === 1 && r.tested === 'partial').length, overstated: known.filter(r => r.verdict === 'overstated').length, late: overdue.length, stale: known.filter(r => r.stale).length,
+    noTest: known.filter(r => !r.tested).length, unknownStatus: [...new Set(known.filter(r => r.status && r.weight === null).map(r => r.status))], gatesClear: gates.filter(g => g.state === 'clear').length, gates: gates.length };
+  return { asOf, asOfSource: A.source, board: { read: house.meta.boardRead || '', source: house.meta.boardSource || '' }, progress: P, shares: T, gates, path, noItem, mismatch, overdue, rows, counts };
+}
+
+/** boardFacts as text lines, for the report and the CLI. */
+function boardText(house, F) {
+  F = F || boardFacts(house);
+  const L = [];
+  L.push(`BOARD AGAINST TESTS · as of ${F.asOf} (${F.asOfSource})` + (F.board.source ? ` · statuses from ${F.board.source}${F.board.read ? ', read ' + F.board.read.replace('T', ' ').slice(0, 16) : ''}` : ' · statuses as typed in the file'));
+  L.push(`  gates: ${F.counts.gatesClear} of ${F.counts.gates} clear` + (F.gates.length ? '' : ' (none marked)'));
+  F.gates.forEach(g => L.push(`    ${g.id.padEnd(5)} ${g.state.padEnd(8)} ${g.short}` + (g.items.length ? ' · ' + g.items.map(x => `${x.key} ${x.status || '(no status)'}${x.tested ? ' / ' + TESTED_CLASSES[x.tested] : ' / no test'}${x.late ? ' / late' : ''}`).join(', ') : ' · no work item') + (g.today ? ` · today: ${g.today}` : '')));
+  L.push(`  next (${F.path.source === 'narrative' ? 'the critical path in the file' : 'open items by share'}):`);
+  F.path.steps.forEach((s, i) => L.push(`    ${i === F.path.firstOpen ? '→' : s.open ? ' ' : '✓'} ${s.label}${s.text ? ' · ' + s.text : ''}`));
+  if (F.noItem.length) L.push('    nothing on the board covers: ' + F.noItem.map(x => `${x.id} ${x.short} (${pct(x.share)})`).join(', '));
+  L.push('  board against tests:' + (F.mismatch.length ? '' : ' no disagreement'));
+  F.mismatch.forEach(m => L.push(`    ${m.key.padEnd(10)} ${m.kind.padEnd(12)} ${(m.status || '(no status)').padEnd(12)} ${(TESTED_CLASSES[m.tested] || 'no test').padEnd(10)}${m.stale ? ' changed since the test' : ''}${m.retested ? ' · tested ' + m.retested : ''}  ${m.title}`));
+  L.push('  overdue:' + (F.overdue.length ? '' : ' none'));
+  F.overdue.forEach(o => L.push(`    ${o.key.padEnd(10)} due ${o.due} · ${o.daysLate} day${o.daysLate === 1 ? '' : 's'} late · ${o.status || '(no status)'}  ${o.title}`));
+  L.push(`  ${F.counts.items} items · ${F.counts.done} done, ${F.counts.doneVerified} of them verified · ${F.counts.noTest} with no test · ${F.counts.stale} changed since the test` + (F.counts.unknownStatus.length ? ' · statuses not in the weights: ' + F.counts.unknownStatus.join(', ') : ''));
+  return L;
+}
+
+// ---------- tracker exports: statuses come from the board, verdicts stay the owner's ----------
+/** Column names (after normHeader) per field, for a tracker export. 'jira' is Jira's CSV export; 'items' is the house's own items.csv. */
+const IMPORT_MAPPINGS = {
+  jira: { key: 'issue_key', title: 'summary', status: 'status', due: 'due_date', updated: 'updated', resolved: 'resolved', effort: ['custom_field_(story_point_estimate)', 'custom_field_(story_points)', 'story_points'], sprint: 'sprint', priority: 'priority' },
+  items: { key: 'key', title: 'title', status: 'status', due: 'due', effort: 'effort', updated: 'updated' },
+};
+const IMPORT_FIELDS = ['title', 'status', 'due', 'effort', 'updated', 'resolved', 'priority', 'sprint'];
+const KEY_RE = /^[A-Za-z][\w.]*-\d+$/;
+/** Merge a tracker export into the items: rows are records (header → value, as from records()); mapping names the columns;
+ *  add says which unknown keys become items ('linked' = only keys a links field names, 'all', 'none'). Writes title, status, due,
+ *  effort, updated, resolved, priority and sprint when the export has the column; never tested, retested or note. */
+function importItems(house, rows, opts) {
+  opts = opts || {};
+  const mapping = typeof opts.mapping === 'object' && opts.mapping ? opts.mapping : IMPORT_MAPPINGS[opts.mapping || 'jira'] || IMPORT_MAPPINGS.jira;
+  const cols = f => { const c = mapping[f]; return (Array.isArray(c) ? c : c ? [c] : []).map(normHeader); };
+  const add = ['linked', 'all', 'none'].includes(opts.add) ? opts.add : 'linked';
+  house.items = house.items || {};
+  const linked = {}; [...house.characteristics, ...house.needs].forEach(x => linksOf(x.links, house.items).forEach(k => { (linked[k] = linked[k] || []).push(x.id); }));
+  const out = { changes: [], added: [], unchanged: [], skipped: [], unknownStatuses: [], rows: rows.length, source: str(opts.source), readAt: '' };
+  const keyCols = cols('key').length ? cols('key') : ['key'];
+  rows.forEach((raw, i) => {
+    const rec = {}; Object.keys(raw || {}).forEach(k => { const h = normHeader(k); const v = str(raw[k]); if (!(h in rec) || v.trim() !== '') rec[h] = v; });
+    const key = (keyCols.map(c => str(rec[c]).trim()).find(Boolean) || '');
+    if (!key) { out.skipped.push({ row: i + 1, why: 'no key in ' + keyCols.join('/') }); return; }
+    let it = house.items[key]; const isNew = !it;
+    if (isNew) {
+      if (add === 'none' || (add === 'linked' && !linked[key])) { out.skipped.push({ row: i + 1, key, why: add === 'none' ? 'not an item of the house' : 'no links field names it' }); return; }
+      it = { title: '', status: '', due: '', effort: '', tested: '', retested: '', updated: '', resolved: '', priority: '', sprint: '', note: '' };
+    }
+    let changed = false;
+    IMPORT_FIELDS.forEach(f => {
+      const cs = cols(f); if (!cs.length || !cs.some(c => c in rec)) return;
+      let v = str(cs.map(c => rec[c]).find(x => str(x).trim() !== '') || '').trim();
+      if (f === 'due') v = isoDate(v) || v; if (f === 'updated' || f === 'resolved') v = isoDateTime(v);
+      const from = str(it[f]); if (from === v) return;
+      if (!isNew) out.changes.push({ key, field: f, from, to: v }); it[f] = v; changed = true;
+    });
+    if (it.status && !(it.status in (house.statusScale || {})) && !out.unknownStatuses.includes(it.status)) out.unknownStatuses.push(it.status);
+    if (isNew) { house.items[key] = it; out.added.push({ key, linkedFrom: linked[key] || [], title: it.title, status: it.status }); }
+    else if (!changed) out.unchanged.push(key);
+  });
+  if (rows.length) { out.readAt = isoDateTime(opts.readAt) || nowIso(); house.meta.boardRead = out.readAt; house.meta.boardSource = str(opts.source) || 'tracker export'; }
+  return out;
+}
+/** importItems' result as lines: key field old → new, + added, ? statuses not in the weights. */
+function importText(r) {
+  const L = [];
+  const byKey = {}; r.changes.forEach(c => { (byKey[c.key] = byKey[c.key] || []).push(c); });
+  Object.keys(byKey).forEach(k => L.push(`  ${k.padEnd(10)} ` + byKey[k].map(c => `${c.field} ${c.from || '(empty)'} → ${c.to || '(empty)'}`).join(' · ')));
+  r.added.forEach(a => L.push(`  + ${a.key.padEnd(8)} added${a.linkedFrom.length ? ' (linked from ' + a.linkedFrom.join(', ') + ')' : ''}${a.status ? ' · ' + a.status : ''}${a.title ? ' · ' + a.title : ''}`));
+  if (r.unknownStatuses.length) L.push('  ? statuses not in the weights (count as 0 progress): ' + r.unknownStatuses.join(', '));
+  const sk = r.skipped.filter(s => s.key); if (sk.length) L.push(`  skipped ${sk.length} row${sk.length === 1 ? '' : 's'} the house does not link: ${sk.slice(0, 12).map(s => s.key).join(', ')}${sk.length > 12 ? ' …' : ''}`);
+  const nk = r.skipped.filter(s => !s.key); if (nk.length) L.push(`  skipped ${nk.length} row${nk.length === 1 ? '' : 's'} with no key`);
+  L.push(`  ${r.changes.length} change${r.changes.length === 1 ? '' : 's'} on ${Object.keys(byKey).length} item${Object.keys(byKey).length === 1 ? '' : 's'} · ${r.added.length} added · ${r.unchanged.length} unchanged · ${r.rows} row${r.rows === 1 ? '' : 's'} read` + (r.source ? ` · from ${r.source}` : ''));
+  return L;
 }
 
 // ---------- TSV export: the version of record ----------
@@ -194,9 +369,8 @@ function toTSV(house, C, opts) {
   opts = opts || {};
   const needs = opts.needs || house.needs, chars = opts.chars || house.characteristics, rel = house.relationships;
   const q = s => str(s).replace(/[\t\n\r]+/g, ' ');
-  const d = new Date(); const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   const rows = [];
-  rows.push([q(house.title), 'exported ' + iso, house.meta.date ? 'data as of ' + house.meta.date : '',
+  rows.push([q(house.title), 'exported ' + todayLocal(), house.meta.date ? 'data as of ' + house.meta.date : '',
     'scoring mode: ' + (C.mode === 'gap' ? 'importance × gap: importance (1–5) × (goal ÷ today) × relationship (9/3/1)' : 'importance (1–5) × relationship (9/3/1)'),
     'order: ' + (opts.orderLabel || 'as listed'),
     'must-pass gates: ' + (chars.filter(h => h.gate).map(h => h.id).join(' ') || 'none') + (chars.some(h => h.gate) ? ' (not ranked)' : '')]);
@@ -238,29 +412,36 @@ function parseCSV(text) {
 }
 function csvField(v) { const s = str(v); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
 function toCSVText(rows) { return rows.map(r => r.map(csvField).join(',')).join('\n') + '\n'; }
-function records(rows) { if (!rows.length) return []; const hdr = rows[0].map(h => str(h).trim().toLowerCase().replace(/[\s-]+/g, '_')); return rows.slice(1).map(r => { const o = {}; hdr.forEach((h, i) => { o[h] = r[i] === undefined ? '' : r[i]; }); return o; }); }
+/** A header as a record key: trimmed, lower case, spaces and dashes as underscores ("Issue key" → issue_key, "Custom field (Story point estimate)" → custom_field_(story_point_estimate)). */
+const normHeader = h => str(h).trim().toLowerCase().replace(/[\s-]+/g, '_');
+/** Rows → records keyed by normHeader. A repeated header (Jira repeats Sprint and Labels) keeps the last non-empty value. */
+function records(rows) { if (!rows.length) return []; const hdr = rows[0].map(normHeader); return rows.slice(1).map(r => { const o = {}; hdr.forEach((h, i) => { const v = r[i] === undefined ? '' : r[i]; if (!(h in o) || str(v).trim() !== '') o[h] = v; }); return o; }); }
 
 const CSV_HEADERS = {
   needs: ['id', 'need', 'short', 'source', 'importance', 'today', 'goal', 'links', 'why'],
   characteristics: ['id', 'name', 'short', 'unit', 'direction', 'target', 'target_short', 'today', 'today_short', 'links', 'difficulty', 'gate'],
   roof: ['a', 'b', 'value'],
-  items: ['key', 'title', 'status', 'due', 'effort', 'tested', 'note'],
+  items: ['key', 'title', 'status', 'due', 'effort', 'tested', 'retested', 'updated', 'note'],
 };
-/** Which of the five CSV files is this? By its first header row. */
+/** Which of the five CSV files is this, or a tracker export ('items-tracker': Jira's CSV has an "Issue key" column)? By its first header row. */
 function classifyCSV(rows, filename) {
   const hdr = (rows[0] || []).map(h => str(h).trim().toLowerCase());
   const has = k => hdr.includes(k);
+  if (has('issue key') || has('issue_key')) return 'items-tracker';
   if (has('need') && has('importance')) return 'needs';
   if (has('name') && has('unit')) return 'characteristics';
   if (hdr[0] === 'a' && hdr[1] === 'b') return 'roof';
   if (has('key') && (has('status') || has('title'))) return 'items';
   if (hdr.length > 1 && hdr.slice(1).every(h => /^[a-z][\w.]*-?\d*$/i.test(h))) return 'matrix';
   const f = str(filename).toLowerCase();
-  if (/need|what/.test(f)) return 'needs'; if (/how|char/.test(f)) return 'characteristics'; if (/roof/.test(f)) return 'roof'; if (/item|ticket|work/.test(f)) return 'items'; if (/matrix|rel|room/.test(f)) return 'matrix';
+  if (/need|what/.test(f)) return 'needs'; if (/how|char/.test(f)) return 'characteristics'; if (/roof/.test(f)) return 'roof'; if (/jira|tracker|export/.test(f)) return 'items-tracker'; if (/item|ticket|work/.test(f)) return 'items'; if (/matrix|rel|room/.test(f)) return 'matrix';
   return null;
 }
-/** Build a house from parsed CSV tables: {needs, characteristics, matrix, roof, items} (rows arrays). matrix: header = characteristic ids, first column = need id. */
-function fromCSV(tables, base) {
+/** Build a house from parsed CSV tables: {needs, characteristics, matrix, roof, items, 'items-tracker'} (rows arrays). matrix: header = characteristic ids,
+ *  first column = need id. items.csv replaces the items (it carries the verdicts); a tracker export is merged with importItems after that
+ *  (opts.source, opts.readAt, opts.add name the source, the read time and which new keys to add) and the result is returned as `import`. */
+function fromCSV(tables, base, opts) {
+  opts = opts || {};
   const h = Object.assign(blank(), base || {});
   if (tables.needs) h.needs = records(tables.needs);
   if (tables.characteristics) h.characteristics = records(tables.characteristics).map(c => Object.assign(c, { targetShort: c.target_short, todayShort: c.today_short }));
@@ -271,7 +452,12 @@ function fromCSV(tables, base) {
   }
   if (tables.roof) { h.roof = {}; records(tables.roof).forEach(r => { if (r.a && r.b) h.roof[str(r.a).trim() + '|' + str(r.b).trim()] = r.value; }); }
   if (tables.items) { h.items = records(tables.items); }
-  return normalize(h);
+  let r = normalize(h);
+  if (tables['items-tracker'] && !r.errors.length) {
+    const imp = importItems(r.house, records(tables['items-tracker']), { mapping: opts.mapping || 'jira', add: opts.add, source: opts.source || 'CSV export', readAt: opts.readAt });
+    const r2 = normalize(r.house); r2.warnings = [...new Set([...r.warnings, ...r2.warnings])]; r2.import = imp; r = r2;
+  }
+  return r;
 }
 /** The house as the five CSV tables (text), for download or for a repo. */
 function toCSV(house) {
@@ -280,7 +466,7 @@ function toCSV(house) {
   out['characteristics.csv'] = toCSVText([CSV_HEADERS.characteristics, ...house.characteristics.map(c => [c.id, c.name, c.short, c.unit, c.direction, c.target, c.targetShort, c.today, c.todayShort, c.links, c.difficulty, c.gate ? 'yes' : ''])]);
   out['matrix.csv'] = toCSVText([['need', ...house.characteristics.map(c => c.id)], ...house.needs.map(w => [w.id, ...house.characteristics.map(c => (house.relationships[w.id] || {})[c.id] || '')])]);
   out['roof.csv'] = toCSVText([CSV_HEADERS.roof, ...Object.keys(house.roof).map(k => [...k.split('|'), house.roof[k]])]);
-  out['items.csv'] = toCSVText([CSV_HEADERS.items, ...Object.keys(house.items).map(k => { const it = house.items[k]; return [k, it.title, it.status, it.due, it.effort, it.tested, it.note]; })]);
+  out['items.csv'] = toCSVText([CSV_HEADERS.items, ...Object.keys(house.items).map(k => { const it = house.items[k]; return [k, it.title, it.status, it.due, it.effort, it.tested, it.retested, it.updated, it.note]; })]);
   return out;
 }
 
@@ -309,7 +495,8 @@ function report(house, opts) {
   const P = progress(house, C);
   L.push('');
   L.push(`PROGRESS · right wall ${Math.round(P.rightWall * 100)}%` + (P.statusWeighted !== null ? ` · items by status ${Math.round(P.statusWeighted * 100)}% over ${Math.round(P.coverage * 100)}% of the weight` : '') + (P.itemCount ? ` · ${P.itemCount} items, ${P.late.length} past due` : ''));
-  if (P.itemCount) { const T = itemShares(house, C); L.push('ITEMS BY SHARE OF THE HOUSE'); T.keys.forEach(k => { const it = house.items[k] || {}; L.push(`  ${k.padEnd(10)} ${(T.shares[k] ? pct(T.shares[k] / T.total) : '—').padStart(6)}  ${(it.status || '').padEnd(12)} ${it.due ? 'due ' + it.due : ''}  ${it.title || ''}`); }); }
+  if (P.itemCount) { const T = itemShares(house, C); L.push('ITEMS BY SHARE OF THE HOUSE'); T.keys.forEach(k => { const it = house.items[k] || {}; L.push(`  ${k.padEnd(10)} ${(T.shares[k] ? pct(T.shares[k] / T.total) : '—').padStart(6)}  ${(it.status || '').padEnd(12)} ${it.due ? 'due ' + it.due : ''}  ${it.title || ''}`); });
+    L.push(''); boardText(house, boardFacts(house, C)).forEach(l => L.push(l)); }
   return L.join('\n');
 }
 
@@ -444,9 +631,14 @@ function toMarkdown(house, opts) {
   const keys = Object.keys(house.items);
   if (keys.length) {
     const T = itemShares(house, C);
-    L.push('', '## Work items', '', '| Key | Title | Share | Serves | Status | Due | Effort | Tested | Really done? | Note |', '|---|---|---|---|---|---|---|---|---|---|');
-    T.keys.forEach(k => { const it = house.items[k] || {}; const rd = reallyDone(house, it.status, it.tested)[0]; L.push(`| ${k} | ${q(it.title)} | ${T.shares[k] ? pct(T.shares[k] / T.total) : '—'} | ${[...(T.chars[k] || []).map(h => h.id + (h.gate ? ' (gate)' : '')), ...(T.needs[k] || []).map(w => w.id)].join(', ')} | ${q(it.status)} | ${q(it.due)} | ${q(it.effort)} | ${q(it.tested)} | ${rd} | ${q(it.note)} |`); });
-    if (P.late.length) L.push('', 'Past due and not done: ' + P.late.join(', ') + '.');
+    const F = boardFacts(house, C);
+    L.push('', '## Work items', '', '| Key | Title | Share | Serves | Status | Due | Effort | Tested | Retested on | Changed since | Really done? | Note |', '|---|---|---|---|---|---|---|---|---|---|---|---|');
+    F.rows.forEach(r => L.push(`| ${r.key} | ${q(r.title)} | ${r.share ? pct(r.share) : '—'} | ${r.serves.map(s => s.id + (s.gate ? ' (gate)' : '')).join(', ')} | ${q(r.status)} | ${q(r.due)}${r.late ? ' (late)' : ''} | ${q(r.effort)} | ${r.testedLabel || (r.known ? 'no test' : '')} | ${q(r.retested)} | ${r.stale ? 'yes, ' + q(isoDate(r.updated)) : (r.updated ? 'no' : '')} | ${r.verdict} | ${q(r.note)} |`));
+    L.push('', '### Board against tests', '', `- As of ${F.asOf} (${F.asOfSource}); statuses ${F.board.source ? 'from ' + q(F.board.source) + (F.board.read ? ', read ' + q(F.board.read.replace('T', ' ').slice(0, 16)) : '') : 'as typed in the file'}.`);
+    L.push(`- Gates: ${F.counts.gatesClear} of ${F.counts.gates} clear` + (F.gates.length ? ': ' + F.gates.map(g => `${g.id} ${g.state}` + (g.items.length ? ' (' + g.items.map(x => `${x.key} ${x.status || 'no status'} / ${TESTED_CLASSES[x.tested] || 'no test'}`).join(', ') + ')' : ' (no work item)')).join('; ') : '') + '.');
+    L.push('- Where the board and the tests disagree: ' + (F.mismatch.length ? F.mismatch.map(m => `${m.key} ${m.kind} (${m.status || 'no status'} / ${TESTED_CLASSES[m.tested] || 'no test'}${m.stale ? ', changed since the test' : ''})`).join('; ') : 'nowhere') + '.');
+    L.push('- Past due and not done: ' + (F.overdue.length ? F.overdue.map(o => `${o.key} (due ${o.due}, ${o.daysLate} day${o.daysLate === 1 ? '' : 's'})`).join(', ') : 'none') + '.');
+    if (F.noItem.length) L.push('- Characteristics with no work item: ' + F.noItem.map(x => x.id).join(', ') + '.');
   }
   if ((house.proposals || []).length) {
     L.push('', '## Proposals awaiting confirmation', '', '| Id | What | By | When | Note | Evidence |', '|---|---|---|---|---|---|');
@@ -669,8 +861,9 @@ function blocks(P,k,total){
 }
 // ---------- end diagonalization ----------
 
-return { REL_VALUES, ROOF_VALUES, DIRS, SYM, WORD, ROOF_WORD, DEFAULT_STATUS_SCALE, TESTED_CLASSES, CSV_HEADERS,
+return { REL_VALUES, ROOF_VALUES, DIRS, SYM, WORD, ROOF_WORD, DEFAULT_STATUS_SCALE, TESTED_CLASSES, TESTED_ALIASES, IMPORT_MAPPINGS, CSV_HEADERS,
   blank, normalize, compute, rankText, relMatrix, linksOf, itemShares, progress, reallyDone, toTSV,
-  parseCSV, toCSVText, classifyCSV, fromCSV, toCSV, report, diagonalize, blocks, spectral, fmt1, pct,
-  toSVG, draw, reduceLists, PROPOSAL_KINDS, provKey, setProvenance, propose, confirmProposal, rejectProposal, describeProposal, nextFreeId, nextCells, toMarkdown, BOM };
+  parseCSV, toCSVText, records, normHeader, classifyCSV, fromCSV, toCSV, report, diagonalize, blocks, spectral, fmt1, pct,
+  toSVG, draw, reduceLists, PROPOSAL_KINDS, provKey, setProvenance, propose, confirmProposal, rejectProposal, describeProposal, nextFreeId, nextCells, toMarkdown, BOM,
+  testedValue, isStale, asOfDate, todayLocal, localDate, isoDate, isoDateTime, parseDate, boardFacts, boardText, importItems, importText };
 });
