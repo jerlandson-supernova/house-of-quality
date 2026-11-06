@@ -79,6 +79,14 @@ Older field names are accepted on load (`src`, `imp`, `now`, `link`, `dir`, `tSh
 
 **narrative** (optional): `criticalPath`, a list of `[item, text]` pairs shown in order on the Work items tab; `findings`, sentences shown under the gates.
 
+**revision** counts accepted changes (the page and the MCP server both increment it), so two copies can be told apart.
+
+**provenance** records who set a value, keyed by what it is: `cell:W1|H2`, `roof:H1|H2` (canonical order), `importance:W1`, `today:W1`, `goal:W1`. Each entry is `{ value, by, confirmedBy, when, note, evidence }`. The page writes the author's name on every edit; the MCP server writes the agent's name, or the stakeholder named in `by`.
+
+**proposals** are values an agent suggested that no one has confirmed yet: `{ id, kind, need, characteristic, a, b, value, by, when, note, evidence }` with `kind` one of `cell`, `roof`, `importance`, `today`, `goal`. They count in no number. Confirming one (on the page or with `proposal_confirm`) applies it and moves it into `provenance`; rejecting removes it. `proposalSeq` is the counter behind the ids.
+
+The MCP server's change log is not in the JSON: it is an append-only `house.log.jsonl` next to the file, one line per accepted change (`ts`, `actor`, `op`, `summary`, `revision`).
+
 ### Links
 
 A links field is free text. Keys are read from it as follows: a segment such as `KAN-120, 62 to 68; L3CD-83` yields `KAN-120`, `KAN-62`…`KAN-68` and `L3CD-83` (a project prefix, a dash, numbers, ranges with `to`, segments split by `;`). A plain word (`MUG-3` also matches the prefix rule) is kept only when it is a key in `items`, so prose in the field is ignored.

@@ -145,6 +145,11 @@ button{font:inherit;color:inherit}
 .cell[data-v="3"]{background:var(--rel3);color:var(--rel3-fg)}
 .cell[data-v="9"]{background:var(--rel9);color:var(--rel9-fg);font-weight:500}
 .cell:hover{box-shadow:inset 0 0 0 2px var(--accent)}
+.cell.prop{box-shadow:inset 0 0 0 2px var(--warn)}
+.cell.prop::after{content:"?";position:absolute;right:2px;top:0;font:600 9px var(--f-mono);color:var(--warn)}
+.cell{position:relative}
+.ed .ok{border:1px solid var(--good);color:var(--good);background:transparent;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:12px}
+.ed .no{border:1px solid var(--line);color:var(--muted);background:transparent;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:12px;margin-left:4px}
 .cell.sym{font-size:13px}
 .cg{display:grid;grid-template-columns:28px 1fr 28px;gap:5px;align-items:center;width:100%}
 .n{width:28px;height:22px;border:1px solid var(--line);border-radius:4px;background:var(--surface);font:11.5px var(--f-mono);text-align:center;padding:0;color:var(--fg)}
@@ -368,6 +373,7 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
         <button class="btn" id="out-csv">Download the CSV files</button>
         <button class="btn" id="out-tsv">Download TSV</button>
         <button class="btn" id="out-svg">Download SVG</button>
+        <button class="btn" id="out-md">Download Markdown</button>
         <button class="btn" id="out-copy">Copy TSV</button>
       </div>
       <div class="in-row"><button class="btn warn" id="in-reset">Reset to the loaded file</button><span class="edits" id="edits"></span></div>
@@ -380,6 +386,11 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
       <div class="fld"><label for="m-scale">Status weights</label><input id="m-scale" data-meta="statusScale" placeholder="To Do=0, In Progress=0.35, Done=1"></div>
       <p class="hint">Status weights score the work items for the progress tile: a status not listed counts as 0.</p>
     </div>
+  </div>
+  <div class="panel" style="margin-top:16px" id="prop-panel">
+    <h2>Proposals from an agent <small>values suggested through the MCP server; they count in no number until you confirm them here</small></h2>
+    <div class="ed-wrap"><table class="ed" id="ed-props"></table></div>
+    <p class="hint" id="prop-hint"></p>
   </div>
   <div class="panel" style="margin-top:16px">
     <h2>Needs <small>the rows: what the stakeholders need, with a source and an importance from 1 to 5</small></h2>
@@ -606,7 +617,8 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
         <li>The lists themselves (needs, characteristics, work items, title) are edited on the Input tab, where you also load and save files.</li>
         <li>Order: Diagonal reorders the house itself into the blocks found in the Diagonal view (thick lines mark the block edges); As listed puts it back.</li>
         <li>Rows and columns: With relationships only hides the needs nothing serves and the characteristics that drive nothing, so a big house reads smaller. The weights, ranks and shares do not change.</li>
-        <li>Download SVG draws the house as a picture, in the order and reduction shown; the same drawing comes from the command line and the MCP server.</li>
+        <li>Download SVG draws the house as a picture, in the order and reduction shown; the same drawing comes from the command line and the MCP server. Download Markdown (Input tab) writes the whole house as a report an agent or a person can read.</li>
+        <li>An agent connected to the MCP server proposes room cells and roof pairs; they show as ? in the House and wait on the Input tab until you confirm or reject them. Every value you set on the page is recorded with your name (the author field) in the file's provenance.</li>
         <li>Copy as TSV puts the whole house on the clipboard for Excel, with the export date and the scoring mode in its first row: send the dated TSV around as the version of record. Page edits stay in this browser.</li>
       </ul>
     </div>
@@ -648,9 +660,14 @@ const rel=(w,h)=>(HOUSE.relationships[w]||{})[h]||0;
 const setRel=(w,h,v)=>{if(!HOUSE.relationships[w])HOUSE.relationships[w]={};if(v)HOUSE.relationships[w][h]=v;else delete HOUSE.relationships[w][h];};
 const howById=id=>HOUSE.characteristics.find(h=>h.id===id);
 const shortName=h=>h.short||h.name;
-function save(){try{localStorage.setItem(KEY,JSON.stringify({house:HOUSE,house0:HOUSE0}));localStorage.setItem(PKEY,JSON.stringify(P));}catch(e){}}
+let lastSaved='';
+const KEY0=KEY+'-loaded';
+function save(){try{const j=JSON.stringify(Object.assign({},HOUSE,{revision:0}));if(lastSaved&&j!==lastSaved)HOUSE.revision=(HOUSE.revision||0)+1;lastSaved=j;localStorage.setItem(KEY,JSON.stringify({house:HOUSE}));localStorage.setItem(PKEY,JSON.stringify(P));}catch(e){}}
+function saveSnapshot(){try{localStorage.setItem(KEY0,JSON.stringify(HOUSE0));}catch(e){}}
+const whoami=()=>HOUSE.meta.author||'the page';
+const prov=(kind,a,b,v)=>{try{H.setProvenance(HOUSE,kind,a,b,v,{by:whoami()});}catch(e){}};
 function loadPrefs(){try{const p=JSON.parse(localStorage.getItem(PKEY)||'null');if(p)P=Object.assign(P,p);}catch(e){}}
-function loadStored(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.house){const r=H.normalize(s.house);if(!r.errors.length){HOUSE=r.house;HOUSE0=s.house0?H.normalize(s.house0).house:clone(HOUSE);return true;}}}catch(e){}return false;}
+function loadStored(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.house){const r=H.normalize(s.house);if(!r.errors.length){HOUSE=r.house;const s0=JSON.parse(localStorage.getItem(KEY0)||'null')||s.house0;HOUSE0=s0?H.normalize(s0).house:clone(HOUSE);return true;}}}catch(e){}return false;}
 /** Compute over the whole house in listed order, then project onto the display order (which may be reordered or reduced),
  *  so ranks, shares and gap shares never depend on what is shown. C.full keeps the listed-order result. */
 function compute(){
@@ -663,7 +680,7 @@ function compute(){
 /** Replace the house with a new one (after normalize). Keeps the view preferences, drops any applied order. */
 function setHouse(house,opts){
   opts=opts||{};
-  HOUSE=house;if(opts.snapshot!==false)HOUSE0=clone(house);
+  HOUSE=house;if(opts.snapshot!==false){HOUSE0=clone(house);saveSnapshot();}lastSaved='';
   P.order=null;IDX={};HOUSE.characteristics.forEach((h,j)=>{IDX[h.id]=j;});
   selected=null;diagDirty=true;
   setLists();build();update();renderInput();fillAdd();renderHeader();save();
@@ -742,7 +759,7 @@ function build(){
   if(grid.dataset.wired)return;grid.dataset.wired='1';
   grid.addEventListener('click',onGridClick);
   grid.addEventListener('keydown',onGridKey);
-  grid.addEventListener('input',e=>{const t=e.target;if(t.classList.contains('n')){let v=parseInt(t.value,10);if(isNaN(v))return;v=Math.min(5,Math.max(1,v));const w=HOUSE.needs.find(x=>x.id===t.dataset.what);if(w){w[t.dataset.f]=v;save();update();renderInput();}}});
+  grid.addEventListener('input',e=>{const t=e.target;if(t.classList.contains('n')){let v=parseInt(t.value,10);if(isNaN(v))return;v=Math.min(5,Math.max(1,v));const w=HOUSE.needs.find(x=>x.id===t.dataset.what);if(w){w[t.dataset.f]=v;prov(t.dataset.f,w.id,null,v);save();update();renderInput();}}});
   grid.addEventListener('change',e=>{const t=e.target;if(t.classList.contains('n')){const w=HOUSE.needs.find(x=>x.id===t.dataset.what);if(w)t.value=w[t.dataset.f];}});
   grid.addEventListener('mouseover',e=>{const c=e.target.closest('.cell');if(c){highlight(+c.dataset.i,+c.dataset.j);return;}const hh=e.target.closest('[data-how]');if(hh){highlight(-1,HOWS.findIndex(h=>h.id===hh.dataset.how));return;}const ww=e.target.closest('.lw,.rw');if(ww){const m=[...ww.classList].find(c=>/^row-\d+$/.test(c));if(m)highlight(+m.slice(4),-1);}});
   grid.addEventListener('mouseleave',()=>highlight(-1,-1));
@@ -757,9 +774,9 @@ function highlight(i,j){
 }
 function onGridClick(e){
   const dot=e.target.closest('.dot');
-  if(dot){const w=HOUSE.needs.find(x=>x.id===dot.dataset.what);if(w){w.importance=+dot.dataset.k;save();update();renderInput();}return;}
+  if(dot){const w=HOUSE.needs.find(x=>x.id===dot.dataset.what);if(w){w.importance=+dot.dataset.k;prov('importance',w.id,null,w.importance);save();update();renderInput();}return;}
   const cell=e.target.closest('.cell');
-  if(cell){const i=+cell.dataset.i,j=+cell.dataset.j;const w=WHATS[i].id,h=HOWS[j].id;const cur=rel(w,h);const idx=REL_CYCLE.indexOf(cur);setRel(w,h,REL_CYCLE[(idx+(e.shiftKey?REL_CYCLE.length-1:1))%REL_CYCLE.length]);save();update();return;}
+  if(cell){const i=+cell.dataset.i,j=+cell.dataset.j;const w=WHATS[i].id,h=HOWS[j].id;const cur=rel(w,h);const idx=REL_CYCLE.indexOf(cur);const nv=REL_CYCLE[(idx+(e.shiftKey?REL_CYCLE.length-1:1))%REL_CYCLE.length];setRel(w,h,nv);prov('cell',w,h,nv);save();update();return;}
   const df=e.target.closest('[data-diff]');
   if(df){const h=howById(df.dataset.diff);if(h){h.difficulty=(h.difficulty%5)+1;save();update();renderInput();}return;}
   const hh=e.target.closest('[data-how]');
@@ -770,8 +787,8 @@ function onGridClick(e){
 function onGridKey(e){
   const cell=e.target.closest('.cell');if(!cell)return;
   const i=+cell.dataset.i,j=+cell.dataset.j;const w=WHATS[i].id,h=HOWS[j].id;
-  if(['1','3','9'].includes(e.key)){setRel(w,h,+e.key);save();update();e.preventDefault();return;}
-  if(e.key==='0'||e.key==='Delete'||e.key==='Backspace'){setRel(w,h,0);save();update();e.preventDefault();return;}
+  if(['1','3','9'].includes(e.key)){setRel(w,h,+e.key);prov('cell',w,h,+e.key);save();update();e.preventDefault();return;}
+  if(e.key==='0'||e.key==='Delete'||e.key==='Backspace'){setRel(w,h,0);prov('cell',w,h,0);save();update();e.preventDefault();return;}
   const mv={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}[e.key];
   if(mv){const ni=Math.min(WHATS.length-1,Math.max(0,i+mv[0])),nj=Math.min(HOWS.length-1,Math.max(0,j+mv[1]));cellEls[ni][nj].focus();e.preventDefault();}
 }
@@ -784,7 +801,8 @@ function update(){
   $('roof-on').setAttribute('aria-pressed',!!P.roofShown);$('roof-off').setAttribute('aria-pressed',!P.roofShown);
   $('ord-orig').setAttribute('aria-pressed',!P.order);$('ord-diag').setAttribute('aria-pressed',!!P.order);
   $('red-off').setAttribute('aria-pressed',!P.reduce);$('red-on').setAttribute('aria-pressed',!!P.reduce);
-  WHATS.forEach((w,i)=>HOWS.forEach((h,j)=>{const v=rel(w.id,h.id);const el=cellEls[i][j];el.dataset.v=v;el.textContent=P.disp==='sym'?SYM[v]:(v||'');el.classList.toggle('sym',P.disp==='sym');el.dataset.tip=`${w.id} × ${h.id}: ${WORD[v]}\n${w.short} ← ${h.name}`;}));
+  const pend={};(HOUSE.proposals||[]).forEach(p=>{if(p.kind==='cell')pend[p.need+'|'+p.characteristic]=p;});
+  WHATS.forEach((w,i)=>HOWS.forEach((h,j)=>{const v=rel(w.id,h.id);const el=cellEls[i][j];el.dataset.v=v;el.textContent=P.disp==='sym'?SYM[v]:(v||'');el.classList.toggle('sym',P.disp==='sym');const pp=pend[w.id+'|'+h.id];el.classList.toggle('prop',!!pp);el.dataset.tip=`${w.id} × ${h.id}: ${WORD[v]}\n${w.short} ← ${h.name}`+(pp?`\nproposed ${pp.value||'blank'} by ${pp.by}${pp.note?': '+pp.note:''} (confirm on the Input tab)`:'');}));
   WHATS.forEach((w,i)=>{
     const box=$('imp-'+w.id);box.querySelectorAll('.dot').forEach(d=>d.classList.toggle('on',+d.dataset.k<=w.importance));box.querySelector('.num').textContent=w.importance;
     const ni=$('now-'+w.id),gi=$('goal-'+w.id);if(document.activeElement!==ni)ni.value=w.today;if(document.activeElement!==gi)gi.value=w.goal;
@@ -819,7 +837,7 @@ function editCount(){
   if(!HOUSE0)return 0;let n=0;const w0={},h0={};HOUSE0.needs.forEach(w=>{w0[w.id]=w;});HOUSE0.characteristics.forEach(h=>{h0[h.id]=h;});
   HOUSE.needs.forEach(w=>{const o=w0[w.id];if(!o){n++;return;}['need','short','source','importance','today','goal','links','why'].forEach(f=>{if(w[f]!==o[f])n++;});HOUSE.characteristics.forEach(h=>{if(rel(w.id,h.id)!==((HOUSE0.relationships[w.id]||{})[h.id]||0))n++;});});
   HOUSE.characteristics.forEach(h=>{const o=h0[h.id];if(!o){n++;return;}['name','short','unit','direction','target','targetShort','today','todayShort','links','difficulty','gate'].forEach(f=>{if(h[f]!==o[f])n++;});});
-  n+=Math.abs(HOUSE.needs.length-HOUSE0.needs.length)+Math.abs(HOUSE.characteristics.length-HOUSE0.characteristics.length);
+  HOUSE0.needs.forEach(w=>{if(!HOUSE.needs.some(x=>x.id===w.id))n++;});HOUSE0.characteristics.forEach(h=>{if(!HOUSE.characteristics.some(x=>x.id===h.id))n++;});
   const keys=new Set([...Object.keys(HOUSE.roof),...Object.keys(HOUSE0.roof)]);keys.forEach(k=>{if((HOUSE.roof[k]||'')!==(HOUSE0.roof[k]||''))n++;});
   if(JSON.stringify(HOUSE.items)!==JSON.stringify(HOUSE0.items))n++;
   if(HOUSE.title!==HOUSE0.title||HOUSE.subtitle!==HOUSE0.subtitle||JSON.stringify(HOUSE.meta)!==JSON.stringify(HOUSE0.meta))n++;
@@ -854,7 +872,7 @@ roofWrap.addEventListener('click',e=>{const g=e.target.closest('.rf');if(!g)retu
 roofWrap.addEventListener('keydown',e=>{const g=e.target.closest('.rf');if(!g)return;if(e.key==='Enter'||e.key===' '){e.preventDefault();cycleRoof(g.dataset.k,e.shiftKey);}});
 roofWrap.addEventListener('mouseover',e=>{const g=e.target.closest('.rf');if(!g)return;const [a,b]=g.dataset.k.split('|');const v=HOUSE.roof[g.dataset.k]||'';showTip(e,`${a} × ${b}: ${v?v+' '+ROOF_WORD[v]:'no correlation set'}\n${howById(a).name}\n${howById(b).name}`);});
 roofWrap.addEventListener('mouseout',e=>{if(e.target.closest('.rf'))hideTip();});
-function cycleRoof(k,back){const cur=HOUSE.roof[k]||'';const idx=ROOF_CYCLE.indexOf(cur);const nv=ROOF_CYCLE[(idx+(back?ROOF_CYCLE.length-1:1))%ROOF_CYCLE.length];if(nv)HOUSE.roof[k]=nv;else delete HOUSE.roof[k];save();update();}
+function cycleRoof(k,back){const cur=HOUSE.roof[k]||'';const idx=ROOF_CYCLE.indexOf(cur);const nv=ROOF_CYCLE[(idx+(back?ROOF_CYCLE.length-1:1))%ROOF_CYCLE.length];if(nv)HOUSE.roof[k]=nv;else delete HOUSE.roof[k];const [a,b]=k.split('|');prov('roof',a,b,nv);save();update();}
 
 // ---------- strip, charts, detail, tables ----------
 function renderStrip(C){
@@ -906,9 +924,9 @@ function renderTables(C){
   const keys=Object.keys(HOUSE.roof).filter(k=>HOUSE.roof[k]).sort((a,b)=>{const [a1,a2]=a.split('|').map(x=>IDX[x]);const [b1,b2]=b.split('|').map(x=>IDX[x]);return a1-b1||a2-b2;});
   $('tbl-roof').innerHTML=`<thead><tr><th>A</th><th>Characteristic A</th><th>B</th><th>Characteristic B</th><th>Correlation</th><th>Meaning</th></tr></thead><tbody>${keys.map(k=>{const [a,b]=k.split('|');const v=HOUSE.roof[k];const ha=howById(a),hb=howById(b);if(!ha||!hb)return '';return `<tr><td class="m">${esc(a)}</td><td>${esc(ha.name)}</td><td class="m">${esc(b)}</td><td>${esc(hb.name)}</td><td><select data-roof="${esc(k)}" aria-label="${esc(a)} with ${esc(b)}"><option value="++"${v==='++'?' selected':''}>++</option><option value="+"${v==='+'?' selected':''}>+</option><option value="−"${v==='−'?' selected':''}>−</option><option value="−−"${v==='−−'?' selected':''}>−−</option><option value="">remove</option></select></td><td class="why">${ROOF_WORD[v]||''}</td></tr>`;}).join('')||'<tr><td colspan="6">No roof pairs set.</td></tr>'}</tbody>`;
 }
-$('tbl-roof').addEventListener('change',e=>{const s=e.target.closest('[data-roof]');if(!s)return;if(s.value)HOUSE.roof[s.dataset.roof]=s.value;else delete HOUSE.roof[s.dataset.roof];save();update();});
+$('tbl-roof').addEventListener('change',e=>{const s=e.target.closest('[data-roof]');if(!s)return;if(s.value)HOUSE.roof[s.dataset.roof]=s.value;else delete HOUSE.roof[s.dataset.roof];const [a,b]=s.dataset.roof.split('|');prov('roof',a,b,s.value);save();update();});
 function fillAdd(){const opts=HOUSE.characteristics.map(h=>`<option value="${esc(h.id)}">${esc(h.id)} · ${esc(h.name)}</option>`).join('');$('add-a').innerHTML=opts;$('add-b').innerHTML=opts;$('add-b').selectedIndex=Math.min(1,HOUSE.characteristics.length-1);}
-$('add-go').addEventListener('click',()=>{const a=$('add-a').value,b=$('add-b').value;if(!a||!b||a===b){toast('Pick two different characteristics');return;}HOUSE.roof[canon(a,b)]=$('add-v').value;save();update();toast(`${canon(a,b).replace('|',' with ')} set to ${$('add-v').value}`);});
+$('add-go').addEventListener('click',()=>{const a=$('add-a').value,b=$('add-b').value;if(!a||!b||a===b){toast('Pick two different characteristics');return;}HOUSE.roof[canon(a,b)]=$('add-v').value;prov('roof',a,b,$('add-v').value);save();update();toast(`${canon(a,b).replace('|',' with ')} set to ${$('add-v').value}`);});
 function renderLegend(){
   $('lg-n').textContent=HOUSE.needs.length;$('lg-m').textContent=HOUSE.characteristics.length;
   const notes=HOUSE.meta.notes||[];$('lg-notes-panel').hidden=!notes.length;
@@ -1067,13 +1085,14 @@ $('in-empty').addEventListener('click',()=>{const e=H.blank();e.needs=[{id:'W1',
 $('in-load-paste').addEventListener('click',()=>{let obj;try{obj=JSON.parse($('in-paste').value);}catch(e){msg('That is not valid JSON: '+e.message,'err');return;}if(loadFromObject(obj,'Pasted JSON loaded'))$('in-paste').value='';});
 function readFiles(files){
   const list=[...files];if(!list.length)return;
-  const tables={};let jsonObj=null;let pending=list.length;const names=[];
+  const tables={};let jsonObj=null,jsonError='';let pending=list.length;const names=[];
   list.forEach(f=>{const rd=new FileReader();rd.onload=()=>{const text=String(rd.result);names.push(f.name);
-    if(/\.json$/i.test(f.name)){try{jsonObj=JSON.parse(text);}catch(e){msg(f.name+' is not valid JSON: '+e.message,'err');}}
+    if(/\.json$/i.test(f.name)){try{jsonObj=JSON.parse(text);}catch(e){jsonError=f.name+' is not valid JSON: '+e.message;}}
     else{const rows=H.parseCSV(text);const kind=H.classifyCSV(rows,f.name);if(kind)tables[kind]=rows;else msg('Could not tell what '+f.name+' is (needs, characteristics, matrix, roof or items). Check its header row.','err');}
     if(--pending===0){
+      if(jsonError){msg(jsonError+(Object.keys(tables).length?' The CSV files were not loaded either.':''),'err');return;}
       if(jsonObj){loadFromObject(jsonObj,'Loaded '+names.filter(n=>/\.json$/i.test(n)).join(', '));}
-      if(Object.keys(tables).length){const base=jsonObj?HOUSE:HOUSE;const r=H.fromCSV(tables,Object.assign(clone(base),{needs:tables.needs?[]:base.needs,characteristics:tables.characteristics?[]:base.characteristics,relationships:tables.matrix?{}:base.relationships,roof:tables.roof?{}:base.roof,items:tables.items?{}:base.items}));
+      if(Object.keys(tables).length){const base=HOUSE;const r=H.fromCSV(tables,Object.assign(clone(base),{needs:tables.needs?[]:base.needs,characteristics:tables.characteristics?[]:base.characteristics,relationships:tables.matrix?{}:base.relationships,roof:tables.roof?{}:base.roof,items:tables.items?{}:base.items}));
         if(r.errors.length){msg('CSV not loaded. '+r.errors.join(' '),'err');return;}
         setHouse(r.house);msg('Loaded '+Object.keys(tables).join(', ')+' from CSV.'+(r.warnings.length?'\nWarnings: '+r.warnings.join(' '):''),r.warnings.length?'warn':'ok');}
     }};rd.readAsText(f);});
@@ -1087,6 +1106,7 @@ function dl(name,text,type){const b=new Blob([text],{type:type||'text/plain'});c
 const slug=()=>(HOUSE.title||'house').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'house';
 const today=()=>new Date().toISOString().slice(0,10);
 $('out-json').addEventListener('click',()=>dl(slug()+'.json',JSON.stringify(HOUSE,null,2),'application/json'));
+$('out-md').addEventListener('click',()=>dl(slug()+'.md',H.toMarkdown(HOUSE,{mode:P.mode,symbols:P.disp==='sym'}),'text/markdown'));
 $('out-tsv').addEventListener('click',()=>dl(slug()+'-'+today()+'.tsv',tsvText(),'text/tab-separated-values'));
 $('out-csv').addEventListener('click',()=>{const files=H.toCSV(HOUSE);let i=0;Object.keys(files).forEach(f=>{setTimeout(()=>dl(f,files[f],'text/csv'),i++*300);});toast('Five CSV files on their way');});
 $('in-reset').addEventListener('click',()=>{if(!HOUSE0)return;if(!confirm('Throw away every edit since the file was loaded?'))return;setHouse(clone(HOUSE0));toast('Back to the loaded file');});
@@ -1109,6 +1129,9 @@ function renderInput(){
   $('m-scale').value=Object.keys(HOUSE.statusScale).map(k=>k+'='+HOUSE.statusScale[k]).join(', ');
   $('ed-needs').innerHTML=`<thead><tr>${NEED_COLS.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>${HOUSE.needs.map((w,i)=>`<tr>${NEED_COLS.map(c=>`<td>${fieldHtml('need',i,c[0],c[2],w[c[0]])}</td>`).join('')}<td><button class="del" data-del="need" data-i="${i}" title="Remove">✕</button></td></tr>`).join('')}</tbody>`;
   $('ed-hows').innerHTML=`<thead><tr>${HOW_COLS.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>${HOUSE.characteristics.map((h,i)=>`<tr>${HOW_COLS.map(c=>`<td>${fieldHtml('how',i,c[0],c[2],h[c[0]])}</td>`).join('')}<td><button class="del" data-del="how" data-i="${i}" title="Remove">✕</button></td></tr>`).join('')}</tbody>`;
+  const props=HOUSE.proposals||[];
+  $('ed-props').innerHTML=props.length?`<thead><tr><th>Id</th><th>What</th><th>By</th><th>When</th><th>Note</th><th>Evidence</th><th></th></tr></thead><tbody>${props.map(p=>`<tr><td>${esc(p.id)}</td><td><b>${esc(H.describeProposal(p))}</b></td><td>${esc(p.by)}</td><td>${esc(String(p.when).slice(0,16).replace('T',' '))}</td><td>${esc(p.note)}</td><td>${esc(p.evidence)}</td><td><button class="ok" data-confirm="${esc(p.id)}">Confirm</button><button class="no" data-reject="${esc(p.id)}">Reject</button></td></tr>`).join('')}</tbody>`:'';
+  $('prop-hint').textContent=props.length?`${props.length} waiting. Confirming applies the value and records who proposed it and who confirmed (${whoami()}: set the author field above so it is your name).`:'None waiting. An agent connected to the MCP server proposes room cells and roof pairs here; cells with a pending proposal show a ? in the House.';
   const ik=Object.keys(HOUSE.items);
   $('ed-items').innerHTML=`<thead><tr>${ITEM_COLS.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>${ik.map((k,i)=>{const it=HOUSE.items[k];return `<tr>${ITEM_COLS.map(c=>`<td>${fieldHtml('item',i,c[0],c[2],c[0]==='key'?k:it[c[0]])}</td>`).join('')}<td><button class="del" data-del="item" data-i="${i}" title="Remove">✕</button></td></tr>`;}).join('')}</tbody>`;
 }
@@ -1133,6 +1156,8 @@ document.getElementById('view-input').addEventListener('change',e=>{
   renderInput();afterListEdit();
 });
 document.getElementById('view-input').addEventListener('click',e=>{
+  const pc=e.target.closest('[data-confirm]');if(pc){const r=H.confirmProposal(HOUSE,pc.dataset.confirm,whoami());if(r.error){toast(r.error);return;}save();setLists();build();update();renderInput();toast('Confirmed: '+H.describeProposal(r.applied));return;}
+  const pr=e.target.closest('[data-reject]');if(pr){const r=H.rejectProposal(HOUSE,pr.dataset.reject);if(r.error){toast(r.error);return;}save();update();renderInput();toast('Rejected '+pr.dataset.reject);return;}
   const b=e.target.closest('[data-del]');if(!b)return;const i=+b.dataset.i;
   if(b.dataset.del==='need'){const w=HOUSE.needs[i];if(!confirm('Remove '+w.id+' and its row of relationships?'))return;HOUSE.needs.splice(i,1);delete HOUSE.relationships[w.id];}
   else if(b.dataset.del==='how'){const h=HOUSE.characteristics[i];if(!confirm('Remove '+h.id+', its column and its roof pairs?'))return;HOUSE.characteristics.splice(i,1);Object.values(HOUSE.relationships).forEach(r=>{delete r[h.id];});Object.keys(HOUSE.roof).forEach(k=>{if(k.split('|').includes(h.id))delete HOUSE.roof[k];});}

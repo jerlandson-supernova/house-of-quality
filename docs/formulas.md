@@ -60,6 +60,14 @@ The right-wall measure says how far the needs have moved from poor towards their
 
 An item linked only from a need has no share: the weights live on the characteristics, and a need's links only say where to look.
 
+## What to fill next
+
+`nextCells` ranks the empty room cells. Most cells of a good house stay blank, so the ranking looks for structural gaps, not for fullness. For an empty cell between need *i* and characteristic *j*:
+
+`score = imp_i × g_i × (1 + share_j) × e_j × k_j`
+
+where `g_i` is 2 when the need has no relationship at all, 1.5 when it has none at 9, and 0.5 otherwise; `share_j` is the characteristic's relative weight; `e_j` is 1.5 when the characteristic drives nothing yet, else 1; `k_j` is 1.2 for a gate, else 1. Cells with a pending proposal are skipped. The result also lists the unaddressed needs, the needs with no strong driver and the characteristics driving nothing, which are the findings the score is built from.
+
 ## The diagonal view
 
 Positions: row *i* at `p_i = position ÷ (n − 1)`, column *j* at `q_j = position ÷ (m − 1)`, both in `[0, 1]`.

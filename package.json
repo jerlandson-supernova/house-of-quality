@@ -5,11 +5,14 @@
   "license": "MIT",
   "private": true,
   "type": "commonjs",
-  "bin": { "hoq": "tools/hoq.js", "hoq-mcp": "mcp/server.js" },
+  "bin": {
+    "hoq": "tools/hoq.js",
+    "hoq-mcp": "mcp/server.js"
+  },
   "scripts": {
     "report": "node tools/hoq.js report examples/sample-house.json",
     "mcp": "node mcp/server.js",
-    "test": "node mcp/test-client.js"
+    "test": "node tools/test-core.js && node mcp/test-client.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

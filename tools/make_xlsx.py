@@ -32,10 +32,14 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 def normalize_with_node(path):
     """Ask the shared JavaScript core to normalise the file, so the sheet and the page agree on defaults."""
     script = ("const H=require(process.argv[1]);const fs=require('fs');const r=H.normalize(JSON.parse(fs.readFileSync(process.argv[2],'utf8')));"
-              "if(r.errors.length){console.error(r.errors.join('\\n'));process.exit(2);}process.stdout.write(JSON.stringify(r.house));")
+              "if(r.errors.length){console.error(r.errors.join('\\n'));process.exit(2);}"
+              "const h=r.house;const linked={};[...h.characteristics,...h.needs].forEach(x=>H.linksOf(x.links,h.items).forEach(k=>{(linked[k]=linked[k]||[]).push(x.id);}));"
+              "process.stdout.write(JSON.stringify({house:h,linked}));")
     try:
         out = subprocess.run(["node", "-e", script, os.path.join(HERE, "..", "web", "hoq-core.js"), path], capture_output=True, text=True, check=True)
-        return json.loads(out.stdout)
+        got = json.loads(out.stdout)
+        got["house"]["_linked"] = got["linked"]
+        return got["house"]
     except (OSError, subprocess.CalledProcessError) as e:
         if isinstance(e, subprocess.CalledProcessError) and e.stderr:
             raise SystemExit("The house has errors:\n" + e.stderr)
@@ -82,8 +86,8 @@ R_CUR, R_ABS, R_REL, R_GATE, R_RANK, R_DIFF, R_LINK = (R_TARGET + k for k in ran
 ROOF_TOP = R_DIR - (n - 1)
 C_SP = HOW_LAST + 1
 C_CUR, C_GOAL, C_RATIO, C_ADJ, C_ADJP, C_LINK, C_WT = (C_SP + k for k in range(1, 8))
-if ROOF_TOP < 6:
-    raise SystemExit(f"{n} characteristics need {n - 1} roof rows; this layout has room for 17. Split the house or raise R_DIR in the script.")
+if ROOF_TOP < 1:
+    raise SystemExit(f"{n} characteristics need {n - 1} roof rows above row {R_DIR}; this layout holds up to {R_DIR}. Split the house or raise R_DIR in the script.")
 
 # ---------------------------------------------------------------- styles
 NAVY, BLUE2, BLUE3, BLUE4 = "1F3864", "2F5597", "8EA9DB", "DDEBF7"
@@ -631,13 +635,12 @@ if ITEMS:
     it = wb.create_sheet("Items")
     for c, t in enumerate(("Key", "Title", "Status", "Due", "Effort", "Tested", "Note", "Linked from"), 1):
         put(it, 1, c, t, Font(bold=True, color="FFFFFF"), fill(NAVY), BORDER, CENTER)
-    linked = {}
-    for h in C:
-        for tok in (h.get("links") or "").replace(";", ",").split(","):
-            linked.setdefault(tok.strip(), []).append(h["id"])
-    for w in W:
-        for tok in (w.get("links") or "").replace(";", ",").split(","):
-            linked.setdefault(tok.strip(), []).append(w["id"])
+    linked = HOUSE.get("_linked")
+    if linked is None:   # no node: the simple split, which does not expand "62 to 68" ranges
+        linked = {}
+        for x in list(C) + list(W):
+            for tok in (x.get("links") or "").replace(";", ",").split(","):
+                linked.setdefault(tok.strip(), []).append(x["id"])
     for r, (key, x) in enumerate(ITEMS.items(), 2):
         for c, v in enumerate((key, x.get("title", ""), x.get("status", ""), x.get("due", ""), x.get("effort", ""), x.get("tested", ""), x.get("note", ""), ", ".join(linked.get(key, []))), 1):
             put(it, r, c, v, Font(bold=True) if c == 1 else None, None, BORDER, LEFT)

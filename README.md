@@ -8,7 +8,7 @@ Three ways in:
 |---|---|
 | **A person** | opens `web/index.html`. Nothing to install: the sample loads, the Input tab takes your JSON or CSV, every cell is clickable. |
 | **A script** | runs `node tools/hoq.js` for reports, the dated TSV, CSV, SVG and the diagonal order, and `tools/make_xlsx.py` for the Excel workbook. |
-| **An AI agent** | connects to `mcp/server.js` over the Model Context Protocol and runs a QFD session with a stakeholder: 22 tools, three resources and a session prompt, on the same code the page runs. |
+| **An AI agent** | connects to `mcp/server.js` over the Model Context Protocol and runs a QFD session with a stakeholder: 29 tools, four resources and a session prompt, on the same code the page runs. What it proposes, a person confirms. |
 
 It was built to run a real product review: sixteen stakeholder needs against twenty measurable characteristics, with gates, tickets and a weekly version of record. This repository is the generic version of that tool, with a small sample house (a commuter travel mug) so you can see every part working before you load your own.
 
@@ -31,20 +31,25 @@ Then, in Claude Code:
 >
 > **The agent** reads `house_priorities` for the top five and the gates, `house_diagonal` for the modules and the build order, and `house_items` once the tickets are in. `house_export` writes the dated TSV, the version of record, and `house_draw` a picture you can paste anywhere.
 
+**The agent suggests, a person confirms.** A room cell or roof pair the agent sets becomes a *proposal*, with the agent's note and evidence. It counts in no weight, rank or share until a person confirms it, on the page (the cell shows a `?` in the House and waits on the Input tab) or through `proposal_confirm` with the person's name, which the server refuses from the agent itself. Confirmed values keep their provenance: who proposed, who confirmed, when, on what evidence. Every accepted change goes to an append-only log next to the file, and the house carries a revision number. `--direct` turns the proposals off for imports and scripts, still with provenance.
+
 **What the agent gets**
 
 | Group | Tools |
 |---|---|
-| The house | `house_new`, `house_open`, `house_save`, `house_summary`, `house_get`, `house_validate` |
+| The house | `house_new`, `house_open`, `house_save`, `house_summary`, `house_get`, `house_validate`, `house_log` (file reads and writes stay inside the house's folder unless `--anywhere`) |
 | Rows and columns | `need_set`, `need_remove`, `characteristic_set`, `characteristic_remove` |
-| The room and the roof | `relationship_set`, `relationships_set_many`, `roof_set` |
+| The room and the roof | `relationship_set`, `relationships_set_many`, `roof_set` (proposals unless `--direct`) |
+| Proposals | `propose`, `proposals_list`, `proposal_confirm`, `proposal_reject`, and `house_next` for the empty cells worth looking at |
 | Work items | `item_set`, `item_remove`, `status_scale_set` |
-| Reading | `house_report`, `house_priorities`, `house_diagonal`, `house_items`, `house_draw` |
-| Export | `house_export` as TSV, CSV, JSON, SVG or the Excel workbook |
+| Reading | `house_report`, `house_markdown` (the report to hand to a person), `house_priorities`, `house_diagonal`, `house_items`, `house_draw` |
+| Export | `house_export` as TSV, CSV, JSON, Markdown, SVG or the Excel workbook |
 
-Plus the resources `hoq://house`, `hoq://report` and `hoq://drawing.svg`, and a `qfd_session` prompt that walks the agent through a session in the right order. With `--file`, every change is saved to that JSON file, so the page can open the same file and the person can keep editing where the agent left off.
+Plus the resources `hoq://house`, `hoq://report`, `hoq://report.md` and `hoq://drawing.svg`, and a `qfd_session` prompt that walks the agent through a session in the right order. With `--file`, every change is saved to that JSON file, so the page can open the same file and the person can keep editing where the agent left off.
 
-The rules an agent must keep are in [`docs/agent.md`](docs/agent.md): needs come from stakeholders in their own words, importance is theirs to set, a characteristic has a unit, gates are never ranked, a board status is a claim, and the dated TSV is the version of record. `npm test` builds a house through the server and checks what comes back.
+**The skill travels with it.** `node tools/hoq.js skills install --target all --project .` puts the agent guide where Claude Code (`.claude/skills`), Codex (`.agents/skills`), Cursor (`.cursor/rules`) and any `AGENTS.md` reader will find it; `--user` installs it for every project, `uninstall` removes exactly what it wrote.
+
+The rules an agent must keep are in [`docs/agent.md`](docs/agent.md) and in the skill: needs come from stakeholders in their own words, importance is theirs to set, a characteristic has a unit, gates are never ranked, a board status is a claim, and the dated TSV is the version of record. `npm test` builds a house through the server, as proposals and as direct writes, and checks what comes back.
 
 ## Screenshots
 

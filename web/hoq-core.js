@@ -24,7 +24,8 @@ const truthy = v => v === true || /^(1|true|yes|y|gate|x)$/i.test(str(v).trim())
 // ---------- the house: shape, defaults, validation ----------
 function blank() {
   return { title: 'House of Quality', subtitle: '', meta: { date: '', author: '', todayLabel: 'today', scale: '1 poor to 5 excellent', notes: [] },
-    needs: [], characteristics: [], relationships: {}, roof: {}, items: {}, statusScale: Object.assign({}, DEFAULT_STATUS_SCALE), blockNames: {}, narrative: {} };
+    needs: [], characteristics: [], relationships: {}, roof: {}, items: {}, statusScale: Object.assign({}, DEFAULT_STATUS_SCALE), blockNames: {}, narrative: {},
+    revision: 0, provenance: {}, proposals: [], proposalSeq: 0 };
 }
 
 /** Take anything shaped like a house (the JSON file, an older field naming, a CSV import) and return
@@ -90,6 +91,13 @@ function normalize(input) {
   h.blockNames = src.blockNames || {};
   h.narrative = src.narrative || {};
   if (Array.isArray(h.narrative.criticalPath)) h.narrative.criticalPath = h.narrative.criticalPath.map(x => Array.isArray(x) ? [str(x[0]), str(x[1])] : [str(x.item || x.key), str(x.text || x.why)]);
+  // provenance (who set a value, with what evidence) and proposals awaiting a person's confirmation
+  h.revision = Math.max(0, Math.floor(num(src.revision, 0)));
+  h.proposalSeq = Math.max(0, Math.floor(num(src.proposalSeq, 0)));
+  h.provenance = {};
+  Object.keys(src.provenance || {}).forEach(k => { const p = src.provenance[k]; if (p && typeof p === 'object') h.provenance[k] = { value: p.value, by: str(p.by), confirmedBy: str(p.confirmedBy), when: str(p.when), note: str(p.note), evidence: str(p.evidence) }; });
+  h.proposals = [];
+  (Array.isArray(src.proposals) ? src.proposals : []).forEach(p => { const q = cleanProposal(h, p); if (q) h.proposals.push(q); else warnings.push('A proposal was dropped: ' + JSON.stringify(p).slice(0, 80)); });
   // empty rows / columns are allowed but worth a warning (Hauser and Clausing read them as a finding)
   h.needs.forEach(w => { if (!Object.keys(h.relationships[w.id]).length) warnings.push('Need ' + w.id + ' has no relationship: nothing in the house serves it.'); });
   h.characteristics.forEach(c => { if (!h.needs.some(w => h.relationships[w.id][c.id])) warnings.push('Characteristic ' + c.id + ' drives nothing.'); });
@@ -133,8 +141,8 @@ function linksOf(text, items) {
   str(text).split(';').forEach(seg => {
     const m = seg.match(/^\s*([A-Za-z][\w.]*)-(\d+)(.*)$/);
     if (m) {
-      const proj = m[1]; const nums = [+m[2]]; const re = /(\d+)(?:\s+to\s+(\d+))?/g; let t;
-      while ((t = re.exec(m[3]))) { const a = +t[1], b = t[2] ? +t[2] : 0; if (b) for (let x = a; x <= b; x++) nums.push(x); else nums.push(a); }
+      const proj = m[1]; const nums = []; const re = /(\d+)(?:\s+to\s+(\d+))?/g; let t;
+      while ((t = re.exec(m[2] + m[3]))) { const a = +t[1], b = t[2] ? +t[2] : 0; if (b) for (let x = a; x <= b; x++) nums.push(x); else nums.push(a); }
       nums.forEach(n => out.push(proj + '-' + n));
     } else if (items) {
       seg.split(',').map(s => s.trim()).forEach(tok => { if (tok && items[tok]) out.push(tok); });
@@ -302,6 +310,143 @@ function report(house, opts) {
   L.push(`PROGRESS · right wall ${Math.round(P.rightWall * 100)}%` + (P.statusWeighted !== null ? ` · items by status ${Math.round(P.statusWeighted * 100)}% over ${Math.round(P.coverage * 100)}% of the weight` : '') + (P.itemCount ? ` · ${P.itemCount} items, ${P.late.length} past due` : ''));
   if (P.itemCount) { const T = itemShares(house, C); L.push('ITEMS BY SHARE OF THE HOUSE'); T.keys.forEach(k => { const it = house.items[k] || {}; L.push(`  ${k.padEnd(10)} ${(T.shares[k] ? pct(T.shares[k] / T.total) : '—').padStart(6)}  ${(it.status || '').padEnd(12)} ${it.due ? 'due ' + it.due : ''}  ${it.title || ''}`); }); }
   return L.join('\n');
+}
+
+// ---------- provenance, proposals, the next cells, the Markdown report ----------
+const nowIso = () => new Date().toISOString();
+const PROPOSAL_KINDS = ['cell', 'roof', 'importance', 'today', 'goal'];
+/** The provenance key for a value: cell:W1|H2, roof:H1|H2 (canonical), importance:W1, today:W1, goal:W1. */
+function provKey(house, kind, a, b) {
+  if (kind === 'cell') return 'cell:' + a + '|' + b;
+  if (kind === 'roof') { const idx = {}; house.characteristics.forEach((h, j) => { idx[h.id] = j; }); return 'roof:' + (idx[a] < idx[b] ? a + '|' + b : b + '|' + a); }
+  return kind + ':' + a;
+}
+function cleanProposal(house, p) {
+  if (!p || !PROPOSAL_KINDS.includes(p.kind)) return null;
+  const q = { id: str(p.id), kind: p.kind, by: str(p.by), when: str(p.when) || nowIso(), note: str(p.note), evidence: str(p.evidence) };
+  if (p.kind === 'cell') { if (!house.needs.some(w => w.id === p.need) || !house.characteristics.some(h => h.id === p.characteristic)) return null; const v = relValue(p.value); if (v === null) return null; q.need = p.need; q.characteristic = p.characteristic; q.value = v; }
+  else if (p.kind === 'roof') { if (!house.characteristics.some(h => h.id === p.a) || !house.characteristics.some(h => h.id === p.b) || p.a === p.b) return null; const v = roofValue(p.value); if (v === null) return null; q.a = p.a; q.b = p.b; q.value = v; }
+  else { if (!house.needs.some(w => w.id === p.need)) return null; const v = num(p.value, NaN); if (!(v >= 1 && v <= 5)) return null; q.need = p.need; q.value = clamp(v, 1, 5); }
+  return q;
+}
+/** Record a value someone set directly (a person on the page, or an agent allowed to write): who, when, why, with what evidence. */
+function setProvenance(house, kind, a, b, value, meta) {
+  house.provenance = house.provenance || {};
+  house.provenance[provKey(house, kind, a, b)] = { value, by: str(meta && meta.by), confirmedBy: str(meta && meta.confirmedBy), when: str(meta && meta.when) || nowIso(), note: str(meta && meta.note), evidence: str(meta && meta.evidence) };
+}
+/** An agent suggests a value; it counts in no number until a person confirms it. Replaces an earlier proposal by the same actor for the same target. */
+function propose(house, p) {
+  const q = cleanProposal(house, Object.assign({}, p, { id: '' }));
+  if (!q) return { error: 'Not a valid proposal: kind must be one of ' + PROPOSAL_KINDS.join(', ') + ', the ids must exist, and the value must be 9/3/1/0, a roof value, or 1 to 5.' };
+  house.proposals = house.proposals || [];
+  const target = targetOf(house, q);
+  const i = house.proposals.findIndex(x => targetOf(house, x) === target && x.by === q.by);
+  house.proposalSeq = (house.proposalSeq || 0) + 1; q.id = 'p' + house.proposalSeq;
+  if (i >= 0) house.proposals[i] = q; else house.proposals.push(q);
+  return { proposal: q, replaced: i >= 0 };
+}
+const targetOf = (house, q) => q.kind === 'cell' ? provKey(house, 'cell', q.need, q.characteristic) : q.kind === 'roof' ? provKey(house, 'roof', q.a, q.b) : q.kind + ':' + q.need;
+const describeProposal = q => q.kind === 'cell' ? `${q.need} × ${q.characteristic} = ${q.value || 'blank'}` : q.kind === 'roof' ? `roof ${q.a} ${q.value || 'none'} ${q.b}` : `${q.need} ${q.kind} = ${q.value}`;
+/** A person confirms a proposal: the value is applied and the provenance records both who proposed and who confirmed. */
+function confirmProposal(house, id, confirmedBy) {
+  const i = (house.proposals || []).findIndex(x => x.id === id); if (i < 0) return { error: 'No proposal ' + id };
+  const q = house.proposals[i];
+  if (q.kind === 'cell') { house.relationships[q.need] = house.relationships[q.need] || {}; if (q.value) house.relationships[q.need][q.characteristic] = q.value; else delete house.relationships[q.need][q.characteristic]; }
+  else if (q.kind === 'roof') { const k = provKey(house, 'roof', q.a, q.b).slice(5); if (q.value) house.roof[k] = q.value; else delete house.roof[k]; }
+  else { const w = house.needs.find(x => x.id === q.need); w[q.kind] = q.value; }
+  const [kind, a, b] = q.kind === 'cell' ? ['cell', q.need, q.characteristic] : q.kind === 'roof' ? ['roof', q.a, q.b] : [q.kind, q.need, null];
+  setProvenance(house, kind, a, b, q.value, { by: q.by, confirmedBy: confirmedBy, note: q.note, evidence: q.evidence });
+  const target = targetOf(house, q);
+  const dropped = house.proposals.filter(x => x.id !== id && targetOf(house, x) === target).map(x => x.id);
+  house.proposals = house.proposals.filter(x => x.id !== id && targetOf(house, x) !== target);
+  return { applied: q, dropped };
+}
+function rejectProposal(house, id) {
+  const i = (house.proposals || []).findIndex(x => x.id === id); if (i < 0) return { error: 'No proposal ' + id };
+  const [q] = house.proposals.splice(i, 1); return { rejected: q };
+}
+/** The empty cells worth looking at next. Most cells of a good house stay blank, so this ranks the structural gaps:
+ *  needs nothing serves, needs with no strong driver, characteristics driving nothing, then weight. */
+function nextCells(house, limit) {
+  limit = limit || 10;
+  const C = compute(house.needs, house.characteristics, house.relationships, {});
+  const pending = new Set((house.proposals || []).filter(p => p.kind === 'cell').map(p => p.need + '|' + p.characteristic));
+  const colEmpty = house.characteristics.map(h => !house.needs.some(w => (house.relationships[w.id] || {})[h.id]));
+  const out = [], unaddressed = [], noStrong = [];
+  house.needs.forEach(w => {
+    const row = house.relationships[w.id] || {}; const vals = Object.values(row);
+    const none = !vals.some(v => v), weak = !vals.some(v => v === 9);
+    if (none) unaddressed.push(w.id); else if (weak) noStrong.push(w.id);
+    house.characteristics.forEach((h, j) => {
+      if (row[h.id] || pending.has(w.id + '|' + h.id)) return;
+      let score = w.importance * (none ? 2 : weak ? 1.5 : 0.5) * (1 + C.pct[j]);
+      const why = []; if (none) why.push(w.id + ' has no relationship yet'); else if (weak) why.push(w.id + ' has no strong (9) driver');
+      if (colEmpty[j]) { score *= 1.5; why.push(h.id + ' drives nothing yet'); }
+      if (h.gate) { score *= 1.2; why.push(h.id + ' is a gate: decide its cells deliberately'); }
+      out.push({ need: w.id, needShort: w.short, characteristic: h.id, characteristicShort: h.short, score: Math.round(score * 100) / 100, why: why.join('; ') || 'an empty cell between a weighted need and a weighted characteristic; probably right to leave blank' });
+    });
+  });
+  out.sort((a, b) => b.score - a.score || a.need.localeCompare(b.need, undefined, { numeric: true }));
+  return { cells: out.slice(0, limit), pendingProposals: (house.proposals || []).length, unaddressedNeeds: unaddressed, needsWithNoStrongDriver: noStrong, characteristicsDrivingNothing: house.characteristics.filter((h, j) => colEmpty[j]).map(h => h.id) };
+}
+/** The house as a Markdown report: for an agent to read, a wiki, a pull request, a message. */
+function toMarkdown(house, opts) {
+  opts = opts || {};
+  const C = compute(house.needs, house.characteristics, house.relationships, { mode: opts.mode });
+  const sym = opts.symbols === false ? v => (v ? String(v) : '') : v => SYM[v] || '';
+  const q = v => str(v).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+  const L = [];
+  L.push('# ' + house.title);
+  if (house.subtitle) L.push('', house.subtitle);
+  L.push('', '_' + [house.meta.date ? 'data as of ' + house.meta.date : '', house.meta.author ? 'by ' + house.meta.author : '', `${house.needs.length} needs × ${house.characteristics.length} characteristics`, `${house.characteristics.filter(h => h.gate).length} must-pass gates`, 'weighting by ' + C.mode, 'revision ' + (house.revision || 0), 'written ' + nowIso().slice(0, 10)].filter(Boolean).join(' · ') + '_');
+  const top = [...house.characteristics.keys()].filter(j => !C.gate[j]).sort((a, b) => C.abs[b] - C.abs[a]).slice(0, 5);
+  const P = progress(house, C);
+  L.push('', '## Summary', '');
+  L.push('- Top five characteristics: ' + top.map(j => `${house.characteristics[j].id} ${house.characteristics[j].short} (${pct(C.pct[j])})`).join(', ') + '.');
+  const gates = house.characteristics.filter(h => h.gate); if (gates.length) L.push('- Must-pass gates, kept out of the rank: ' + gates.map(h => `${h.id} ${h.short}`).join(', ') + '.');
+  L.push(`- Right wall: ${Math.round(P.rightWall * 100)}% of the way from poor to goal, importance-weighted.` + (P.statusWeighted !== null ? ` Work items by status: ${Math.round(P.statusWeighted * 100)}% over ${Math.round(P.coverage * 100)}% of the weight.` : ''));
+  if ((house.proposals || []).length) L.push(`- ${house.proposals.length} proposal${house.proposals.length === 1 ? '' : 's'} awaiting a person's confirmation (counted in no number above).`);
+  L.push('', '## Needs (rows)', '', '| # | Need | Source | Imp. | Today | Goal | Ratio | Gap % | Links |', '|---|---|---|---|---|---|---|---|---|');
+  house.needs.forEach((w, i) => L.push(`| ${w.id} | ${q(w.need)} | ${q(w.source)} | ${w.importance} | ${w.today} | ${w.goal} | ${fmt1(C.ratio[i])} | ${pct(C.adjPct[i])} | ${q(w.links)} |`));
+  L.push('', '## Characteristics (columns)', '', '| # | Characteristic | Unit | Dir. | Target | Today | Weight | % | Rank | Gate | Diff. | Links |', '|---|---|---|---|---|---|---|---|---|---|---|---|');
+  house.characteristics.forEach((h, j) => L.push(`| ${h.id} | ${q(h.name)} | ${q(h.unit)} | ${h.direction} | ${q(h.target)} | ${q(h.today)} | ${fmtNum(C.abs[j])} | ${pct(C.pct[j])} | ${C.gate[j] ? 'gate' : C.rank[j]} | ${h.gate ? 'yes' : ''} | ${h.difficulty} | ${q(h.links)} |`));
+  L.push('', '## The room', '', '● 9 strong · ○ 3 medium · △ 1 weak', '', '| | ' + house.characteristics.map(h => h.id).join(' | ') + ' |', '|---|' + house.characteristics.map(() => ':-:').join('|') + '|');
+  house.needs.forEach(w => L.push(`| ${w.id} ${q(w.short)} | ` + house.characteristics.map(h => sym((house.relationships[w.id] || {})[h.id] || 0)).join(' | ') + ' |'));
+  const roofKeys = Object.keys(house.roof).filter(k => house.roof[k]);
+  L.push('', '## Roof', '');
+  if (roofKeys.length) { const by = {}; house.characteristics.forEach(h => { by[h.id] = h; }); roofKeys.forEach(k => { const [a, b] = k.split('|'); L.push(`- ${a} ${house.roof[k]} ${b}: ${q((by[a] || {}).short)} and ${q((by[b] || {}).short)}. ${ROOF_WORD[house.roof[k]] || ''}`); }); }
+  else L.push('No roof pairs set.');
+  if (house.needs.length > 1 && house.characteristics.length > 1) {
+    const r = diagonalize(relMatrix(house, 'all'), { kMax: 8 });
+    const W = i => house.needs[i].id, X = j => house.characteristics[j].id;
+    L.push('', '## Diagonal: blocks and coupling', '', `${r.k} blocks (modularity Q = ${r.after.Q.toFixed(2)}); ${Math.round(r.after.inBlock * 100)}% of the relationships inside the blocks (${Math.round(r.before.inBlock * 100)}% as listed).`, '');
+    r.blocks.rowCuts.forEach((a0, bi) => L.push(`- B${bi + 1}: ${r.rows.slice(a0, r.blocks.rowCuts[bi + 1] ?? r.n).map(W).join(', ')} × ${r.cols.slice(r.blocks.colCuts[bi], r.blocks.colCuts[bi + 1] ?? r.m).map(X).join(', ')}`));
+    L.push('', `Coupling, strong relationships only: **${r.strong.verdict}**. Counting every level: **${r.all.verdict}**` + (r.all.verdict === 'coupled' ? ` (${r.all.above.length} ties one way, ${r.all.below.length} the other; ties to cut: ${r.all.cut.map(t => W(t.i) + ' ← ' + X(t.j)).join(', ')}).` : '.'));
+  }
+  const keys = Object.keys(house.items);
+  if (keys.length) {
+    const T = itemShares(house, C);
+    L.push('', '## Work items', '', '| Key | Title | Share | Serves | Status | Due | Effort | Tested | Really done? | Note |', '|---|---|---|---|---|---|---|---|---|---|');
+    T.keys.forEach(k => { const it = house.items[k] || {}; const rd = reallyDone(house, it.status, it.tested)[0]; L.push(`| ${k} | ${q(it.title)} | ${T.shares[k] ? pct(T.shares[k] / T.total) : '—'} | ${[...(T.chars[k] || []).map(h => h.id + (h.gate ? ' (gate)' : '')), ...(T.needs[k] || []).map(w => w.id)].join(', ')} | ${q(it.status)} | ${q(it.due)} | ${q(it.effort)} | ${q(it.tested)} | ${rd} | ${q(it.note)} |`); });
+    if (P.late.length) L.push('', 'Past due and not done: ' + P.late.join(', ') + '.');
+  }
+  if ((house.proposals || []).length) {
+    L.push('', '## Proposals awaiting confirmation', '', '| Id | What | By | When | Note | Evidence |', '|---|---|---|---|---|---|');
+    house.proposals.forEach(p => L.push(`| ${p.id} | ${q(describeProposal(p))} | ${q(p.by)} | ${q(p.when.slice(0, 16))} | ${q(p.note)} | ${q(p.evidence)} |`));
+  }
+  const N = nextCells(house, 5);
+  L.push('', '## Findings', '');
+  L.push('- Needs with no relationship: ' + (N.unaddressedNeeds.join(', ') || 'none') + '.');
+  L.push('- Needs with no strong driver: ' + (N.needsWithNoStrongDriver.join(', ') || 'none') + '.');
+  L.push('- Characteristics driving nothing: ' + (N.characteristicsDrivingNothing.join(', ') || 'none') + '.');
+  if (N.cells.length && (N.unaddressedNeeds.length || N.needsWithNoStrongDriver.length || N.characteristicsDrivingNothing.length)) L.push('- Cells to look at next: ' + N.cells.map(c => `${c.need} × ${c.characteristic} (${c.why})`).join('; ') + '.');
+  const provKeys = Object.keys(house.provenance || {});
+  if (provKeys.length) {
+    L.push('', '## Provenance', '', `${provKeys.length} value${provKeys.length === 1 ? '' : 's'} with a recorded source.`);
+    if (provKeys.length <= 80) { L.push('', '| Value | Set to | By | Confirmed by | When | Note | Evidence |', '|---|---|---|---|---|---|---|'); provKeys.forEach(k => { const p = house.provenance[k]; L.push(`| ${k} | ${q(p.value)} | ${q(p.by)} | ${q(p.confirmedBy)} | ${q(str(p.when).slice(0, 16))} | ${q(p.note)} | ${q(p.evidence)} |`); }); }
+  }
+  if (house.meta.notes && house.meta.notes.length) { L.push('', '## Notes', ''); house.meta.notes.forEach(x => L.push(`- **${q(x.term)}**: ${q(x.text)}`)); }
+  return L.join('\n') + '\n';
 }
 
 // ---------- drawing: the house as an SVG, from a house object (no DOM, so node can write the file) ----------
@@ -509,5 +654,5 @@ function blocks(P,k,total){
 return { REL_VALUES, ROOF_VALUES, DIRS, SYM, WORD, ROOF_WORD, DEFAULT_STATUS_SCALE, TESTED_CLASSES, CSV_HEADERS,
   blank, normalize, compute, rankText, relMatrix, linksOf, itemShares, progress, reallyDone, toTSV,
   parseCSV, toCSVText, classifyCSV, fromCSV, toCSV, report, diagonalize, blocks, spectral, fmt1, pct,
-  toSVG, draw, reduceLists };
+  toSVG, draw, reduceLists, PROPOSAL_KINDS, provKey, setProvenance, propose, confirmProposal, rejectProposal, describeProposal, nextCells, toMarkdown };
 });
