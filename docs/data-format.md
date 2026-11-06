@@ -39,6 +39,16 @@ Older field names are accepted on load (`src`, `imp`, `now`, `link`, `dir`, `tSh
 
 ### Fields
 
+**meta**
+
+| Field | Meaning |
+|---|---|
+| `date` | The date the data is as of, `YYYY-MM-DD`. Shown in the header; past-due items are judged against it. |
+| `author` | Who set the ratings. The page records this name as the provenance of every edit made in it. |
+| `todayLabel` | What every "today" in the house describes: the build, prototype or week the today scores and the measured states refer to, e.g. `current prototype` or `staging build of 5 Nov`. It replaces the word "today" in the page's and the workbook's headers. `date` is when; this is what. |
+| `scale` | A reminder of the 1 to 5 scale, shown in the legend. |
+| `notes` | A list of `{ term, text }` shown on the Legend tab and in the workbook. |
+
 **needs** (the rows, WHATs)
 
 | Field | Meaning |

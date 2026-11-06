@@ -382,7 +382,8 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
       <div class="fld"><label for="m-sub">One line under it</label><input id="m-sub" data-meta="subtitle"></div>
       <div class="fld"><label for="m-date">Data as of (date)</label><input id="m-date" data-meta="meta.date" placeholder="YYYY-MM-DD"></div>
       <div class="fld"><label for="m-author">Author</label><input id="m-author" data-meta="meta.author"></div>
-      <div class="fld"><label for="m-today">"Today" means</label><input id="m-today" data-meta="meta.todayLabel" placeholder="e.g. current prototype, staging build"></div>
+      <div class="fld"><label for="m-today">The today scores describe</label><input id="m-today" data-meta="meta.todayLabel" placeholder="e.g. current prototype, staging build of 5 Nov, pilot week 1"></div>
+      <p class="hint">Every "today" in the house describes one moment: each need's today score on the right wall, and each characteristic's measured state in the basement. Name that moment here (which build, prototype or week) and it replaces the word "today" in the headers, so a reader knows what the scores are about. "Data as of" above is the date; this is the thing.</p>
       <div class="fld"><label for="m-scale">Status weights</label><input id="m-scale" data-meta="statusScale" placeholder="To Do=0, In Progress=0.35, Done=1"></div>
       <p class="hint">Status weights score the work items for the progress tile: a status not listed counts as 0.</p>
     </div>
@@ -603,7 +604,7 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
         <dt><span class="key knn">−−</span></dt><dd>Strong trade-off.</dd>
         <dt>↑ ↓ ◎</dt><dd>Larger is better, smaller is better, meet a set target.</dd>
         <dt>Weighted importance</dt><dd>Per column: Σ over needs of (weight × relationship). Weight is the importance, or importance × (goal ÷ today) when "Importance × gap" is on.</dd>
-        <dt>Today / goal</dt><dd>1 poor to 5 excellent. Ratio = goal ÷ today; adjusted weight = importance × ratio.</dd>
+        <dt>Today / goal</dt><dd>1 poor to 5 excellent. Ratio = goal ÷ today; adjusted weight = importance × ratio. "Today" is one named moment, the build or prototype the scores describe, set on the Input tab ("The today scores describe"); its name replaces the word "today" in the headers.</dd>
       </dl>
     </div>
     <div class="panel">
