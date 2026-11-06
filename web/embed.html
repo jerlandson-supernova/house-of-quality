@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>House of Quality, embedded</title>
+<style>body{font:15px/1.5 system-ui,sans-serif;margin:24px;color:#15212b}figure{margin:0 0 24px}figure svg{max-width:100%;height:auto;border:1px solid #cbd3db;border-radius:8px}code{background:#eef1f4;padding:1px 4px;border-radius:3px}</style>
+</head>
+<body>
+<h1>Draw a house from a JSON file</h1>
+<p>Two script tags and one call, in the spirit of JSqfd: <code>HOQ.draw(element, houseOrUrl, options)</code>. Options: <code>reduce</code> hides rows and columns with no relationship, <code>symbols:false</code> shows 9 3 1 instead of ● ○ △, <code>mode:'gap'</code> weights needs by importance × (goal ÷ today), <code>roof:false</code> leaves the roof out. Loading from a URL needs the page served over http (a <code>file://</code> page cannot fetch); an object works anywhere.</p>
+<figure id="full"></figure>
+<figure id="reduced"></figure>
+<pre><code>&lt;script src="hoq-core.js"&gt;&lt;/script&gt;
+&lt;div id="hoq"&gt;&lt;/div&gt;
+&lt;script&gt;HOQ.draw('#hoq', '../examples/sample-house.json', { reduce: true });&lt;/script&gt;</code></pre>
+<script src="hoq-core.js"></script>
+<script src="sample-house.js"></script>
+<script>
+  // From the sample object (works from file:// too); the reduced one from the JSON URL when served over http.
+  HOQ.draw('#full', window.HOQ_SAMPLE, {});
+  HOQ.draw('#reduced', '../examples/sample-house.json', { reduce: true, symbols: false, title: true })
+    .catch(() => HOQ.draw('#reduced', window.HOQ_SAMPLE, { reduce: true, symbols: false }));
+</script>
+</body>
+</html>

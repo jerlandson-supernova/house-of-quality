@@ -367,6 +367,7 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
         <button class="btn primary" id="out-json">Download JSON</button>
         <button class="btn" id="out-csv">Download the CSV files</button>
         <button class="btn" id="out-tsv">Download TSV</button>
+        <button class="btn" id="out-svg">Download SVG</button>
         <button class="btn" id="out-copy">Copy TSV</button>
       </div>
       <div class="in-row"><button class="btn warn" id="in-reset">Reset to the loaded file</button><span class="edits" id="edits"></span></div>
@@ -423,8 +424,15 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
         <button id="ord-diag" aria-pressed="false">Diagonal</button>
       </div>
     </div>
+    <div class="seg">Rows and columns
+      <div class="opts" role="group" aria-label="Rows and columns shown">
+        <button id="red-off" aria-pressed="true">All</button>
+        <button id="red-on" aria-pressed="false">With relationships only</button>
+      </div>
+    </div>
     <span class="spacer"></span>
     <button class="btn" id="copy">Copy as TSV</button>
+    <button class="btn" id="svg">Download SVG</button>
     <button class="btn" id="to-input">Edit the lists</button>
   </div>
   <div class="strip" id="strip"></div>
@@ -597,6 +605,8 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
         <li>Click the dashed difficulty box to step 1 to 5.</li>
         <li>The lists themselves (needs, characteristics, work items, title) are edited on the Input tab, where you also load and save files.</li>
         <li>Order: Diagonal reorders the house itself into the blocks found in the Diagonal view (thick lines mark the block edges); As listed puts it back.</li>
+        <li>Rows and columns: With relationships only hides the needs nothing serves and the characteristics that drive nothing, so a big house reads smaller. The weights, ranks and shares do not change.</li>
+        <li>Download SVG draws the house as a picture, in the order and reduction shown; the same drawing comes from the command line and the MCP server.</li>
         <li>Copy as TSV puts the whole house on the clipboard for Excel, with the export date and the scoring mode in its first row: send the dated TSV around as the version of record. Page edits stay in this browser.</li>
       </ul>
     </div>
@@ -629,7 +639,7 @@ const clone=o=>JSON.parse(JSON.stringify(o));
 
 // ---------- state: the house itself (data + ratings), a snapshot of what was loaded, and the view preferences ----------
 let HOUSE=null,HOUSE0=null;
-let P={mode:'importance',disp:'sym',roofShown:true,order:null,dgUse:'all',dgK:0};
+let P={mode:'importance',disp:'sym',roofShown:true,order:null,dgUse:'all',dgK:0,reduce:false};
 let WHATS=[],HOWS=[];       // display order (permuted when a diagonal order is applied)
 let IDX={};                 // characteristic id -> listed index, for canonical roof keys
 const canon=(a,b)=>IDX[a]<IDX[b]?a+'|'+b:b+'|'+a;
@@ -641,7 +651,14 @@ const shortName=h=>h.short||h.name;
 function save(){try{localStorage.setItem(KEY,JSON.stringify({house:HOUSE,house0:HOUSE0}));localStorage.setItem(PKEY,JSON.stringify(P));}catch(e){}}
 function loadPrefs(){try{const p=JSON.parse(localStorage.getItem(PKEY)||'null');if(p)P=Object.assign(P,p);}catch(e){}}
 function loadStored(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.house){const r=H.normalize(s.house);if(!r.errors.length){HOUSE=r.house;HOUSE0=s.house0?H.normalize(s.house0).house:clone(HOUSE);return true;}}}catch(e){}return false;}
-function compute(){return H.compute(WHATS,HOWS,REL(),{mode:P.mode});}
+/** Compute over the whole house in listed order, then project onto the display order (which may be reordered or reduced),
+ *  so ranks, shares and gap shares never depend on what is shown. C.full keeps the listed-order result. */
+function compute(){
+  const CF=H.compute(HOUSE.needs,HOUSE.characteristics,REL(),{mode:P.mode});
+  const wi={},hj={};HOUSE.needs.forEach((w,i)=>{wi[w.id]=i;});HOUSE.characteristics.forEach((h,j)=>{hj[h.id]=j;});
+  const pw=a=>WHATS.map(w=>a[wi[w.id]]),ph=a=>HOWS.map(h=>a[hj[h.id]]);
+  return {mode:CF.mode,wts:pw(CF.wts),abs:ph(CF.abs),total:CF.total,pct:ph(CF.pct),rank:ph(CF.rank),gate:ph(CF.gate),top:ph(CF.top),nRanked:CF.nRanked,ratio:pw(CF.ratio),adj:pw(CF.adj),adjPct:pw(CF.adjPct),max:CF.max,full:CF};
+}
 
 /** Replace the house with a new one (after normalize). Keeps the view preferences, drops any applied order. */
 function setHouse(house,opts){
@@ -657,11 +674,16 @@ function reindex(){IDX={};HOUSE.characteristics.forEach((h,j)=>{IDX[h.id]=j;});}
 const grid=$('grid');
 const cellEls=[],rowEls=[],colEls=[],howHeadIds=[];
 let selected=null,hi=-1,hj=-1;
-function setLists(){
+function orderedLists(){
   let W=HOUSE.needs.slice(),X=HOUSE.characteristics.slice();
   if(P.order){const wid={},hid={};HOUSE.needs.forEach(w=>{wid[w.id]=w;});HOUSE.characteristics.forEach(h=>{hid[h.id]=h;});
     const w=P.order.rows.map(id=>wid[id]).filter(Boolean),h=P.order.cols.map(id=>hid[id]).filter(Boolean);
     if(w.length===W.length&&new Set(w).size===w.length&&h.length===X.length&&new Set(h).size===h.length){W=w;X=h;}else P.order=null;}
+  return {W,X};
+}
+function setLists(){
+  const o=orderedLists();let W=o.W,X=o.X;
+  if(P.reduce){const r=H.reduceLists(HOUSE);const rs=new Set(r.rows.map(i=>HOUSE.needs[i].id)),cs=new Set(r.cols.map(j=>HOUSE.characteristics[j].id));W=W.filter(w=>rs.has(w.id));X=X.filter(h=>cs.has(h.id));}
   WHATS=W;HOWS=X;
 }
 function build(){
@@ -713,7 +735,7 @@ function build(){
   grid.querySelectorAll('.cell').forEach(el=>{const i=+el.dataset.i,j=+el.dataset.j;(cellEls[i]=cellEls[i]||[])[j]=el;});
   WHATS.forEach((w,i)=>{rowEls[i]=[...grid.querySelectorAll('.row-'+i)];});
   HOWS.forEach((h,j)=>{colEls[j]=[...grid.querySelectorAll('.col-'+j)];howHeadIds[j]=$('hid-'+h.id);});
-  if(P.order&&P.order.rowCuts&&P.order.colCuts){
+  if(P.order&&!P.reduce&&P.order.rowCuts&&P.order.colCuts){
     P.order.colCuts.slice(1).forEach(j=>{if(colEls[j]){colEls[j].forEach(el=>el.classList.add('bL'));cellEls.forEach(r=>r[j]&&r[j].classList.add('bL'));}});
     P.order.rowCuts.slice(1).forEach(i=>{if(rowEls[i]){rowEls[i].forEach(el=>el.classList.add('bT'));cellEls[i].forEach(el=>el.classList.add('bT'));}});
   }
@@ -761,6 +783,7 @@ function update(){
   $('disp-sym').setAttribute('aria-pressed',P.disp==='sym');$('disp-num').setAttribute('aria-pressed',P.disp==='num');
   $('roof-on').setAttribute('aria-pressed',!!P.roofShown);$('roof-off').setAttribute('aria-pressed',!P.roofShown);
   $('ord-orig').setAttribute('aria-pressed',!P.order);$('ord-diag').setAttribute('aria-pressed',!!P.order);
+  $('red-off').setAttribute('aria-pressed',!P.reduce);$('red-on').setAttribute('aria-pressed',!!P.reduce);
   WHATS.forEach((w,i)=>HOWS.forEach((h,j)=>{const v=rel(w.id,h.id);const el=cellEls[i][j];el.dataset.v=v;el.textContent=P.disp==='sym'?SYM[v]:(v||'');el.classList.toggle('sym',P.disp==='sym');el.dataset.tip=`${w.id} × ${h.id}: ${WORD[v]}\n${w.short} ← ${h.name}`;}));
   WHATS.forEach((w,i)=>{
     const box=$('imp-'+w.id);box.querySelectorAll('.dot').forEach(d=>d.classList.toggle('on',+d.dataset.k<=w.importance));box.querySelector('.num').textContent=w.importance;
@@ -785,8 +808,9 @@ function update(){
   const relCount=WHATS.reduce((s,w)=>s+HOWS.filter(h=>rel(w.id,h.id)).length,0);
   const roofCount=Object.values(HOUSE.roof).filter(Boolean).length;
   const gates=HOWS.filter(h=>h.gate).length;
-  const ord=P.order?` · order: diagonal, ${P.order.k||(P.order.rowCuts||[]).length} blocks (thick lines mark the block edges)`:' · order: as listed';
-  $('footnote').textContent=`${WHATS.length} needs · ${HOWS.length} characteristics${gates?` (${gates} must-pass gate${gates===1?'':'s'}, not ranked)`:''} · ${relCount} relationships set · ${roofCount} roof pairs · weighting by ${P.mode==='gap'?'importance × gap':'importance'}${ord}. Hover a cell for the pair; click to change it. Sticky first columns scroll with the room.`;
+  const ord=P.order?` · order: diagonal, ${P.order.k||(P.order.rowCuts||[]).length} blocks${P.reduce?'':' (thick lines mark the block edges)'}`:' · order: as listed';
+  const hid=P.reduce?` · hidden: ${HOUSE.needs.length-WHATS.length} need${HOUSE.needs.length-WHATS.length===1?'':'s'} and ${HOUSE.characteristics.length-HOWS.length} characteristic${HOUSE.characteristics.length-HOWS.length===1?'':'s'} with no relationship (numbers unchanged)`:'';
+  $('footnote').textContent=`${WHATS.length} needs · ${HOWS.length} characteristics${gates?` (${gates} must-pass gate${gates===1?'':'s'}, not ranked)`:''} · ${relCount} relationships set · ${roofCount} roof pairs · weighting by ${P.mode==='gap'?'importance × gap':'importance'}${ord}${hid}. Hover a cell for the pair; click to change it. Sticky first columns scroll with the room.`;
   $('chart1-sub').textContent=P.mode==='gap'?'weighted by importance × gap':'weighted by importance';
   const ne=editCount();$('edits').textContent=ne?`${ne} edit${ne===1?'':'s'} since the file was loaded (this browser only)`:'as loaded';
   renderRoof();
@@ -899,17 +923,21 @@ $('disp-num').addEventListener('click',()=>{P.disp='num';save();update();});
 $('roof-on').addEventListener('click',()=>{P.roofShown=true;save();update();});
 $('roof-off').addEventListener('click',()=>{P.roofShown=false;save();update();});
 $('to-input').addEventListener('click',()=>showView('input'));
-function tsvText(){const C=compute();return H.toTSV(HOUSE,C,{needs:WHATS,chars:HOWS,orderLabel:P.order?'diagonal, '+(P.order.k||'')+' blocks':'as listed'});}
+function tsvText(){const o=orderedLists();const C=H.compute(o.W,o.X,REL(),{mode:P.mode});return H.toTSV(HOUSE,C,{needs:o.W,chars:o.X,orderLabel:P.order?'diagonal, '+(P.order.k||'')+' blocks':'as listed'});}
+function svgText(){const o=orderedLists();return H.toSVG(HOUSE,{reduce:P.reduce,mode:P.mode,symbols:P.disp==='sym',rows:o.W.map(w=>HOUSE.needs.indexOf(w)),cols:o.X.map(h=>HOUSE.characteristics.indexOf(h))});}
 function copyTSV(){
   const t=tsvText();const done=()=>toast('Copied: paste into Excel or Sheets');
   const fallback=()=>{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy');}catch(e){}document.body.removeChild(ta);if(ok)done();else toast('Copy was blocked here; use Download TSV on the Input tab');};
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,fallback);}else fallback();
 }
 $('copy').addEventListener('click',copyTSV);$('out-copy').addEventListener('click',copyTSV);
+$('svg').addEventListener('click',()=>dl(slug()+'.svg',svgText(),'image/svg+xml'));$('out-svg').addEventListener('click',()=>dl(slug()+'.svg',svgText(),'image/svg+xml'));
+$('red-off').addEventListener('click',()=>{if(!P.reduce)return;P.reduce=false;save();selected=null;rebuildHouse();});
+$('red-on').addEventListener('click',()=>{if(P.reduce)return;P.reduce=true;save();selected=null;rebuildHouse();toast('Rows and columns with no relationship hidden; the numbers are unchanged');});
 
 // ---------- work items ----------
 function renderItems(C){
-  const T=H.itemShares(HOUSE,C,HOWS,WHATS);const tot=C.total||1;const Pg=H.progress(HOUSE,C);
+  const T=H.itemShares(HOUSE,C,HOWS,WHATS);const tot=C.total||1;const Pg=H.progress(HOUSE,C.full||C);
   const items=HOUSE.items;const keys=T.keys;const have=Object.keys(items).length>0;
   const gates=HOWS.filter(h=>h.gate);const noItem=HOWS.filter(h=>!H.linksOf(h.links,items).length);
   const scaleOrder=Object.keys(HOUSE.statusScale).sort((a,b)=>HOUSE.statusScale[a]-HOUSE.statusScale[b]);

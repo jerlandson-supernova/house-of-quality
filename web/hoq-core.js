@@ -304,6 +304,73 @@ function report(house, opts) {
   return L.join('\n');
 }
 
+// ---------- drawing: the house as an SVG, from a house object (no DOM, so node can write the file) ----------
+const xmlEsc = s => str(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+/** Rows and columns that take part in at least one relationship (JSqfd's "reduce" option). Returns index lists. */
+function reduceLists(house) {
+  const rows = house.needs.map((w, i) => i).filter(i => Object.values(house.relationships[house.needs[i].id] || {}).some(v => v));
+  const cols = house.characteristics.map((h, j) => j).filter(j => house.needs.some(w => (house.relationships[w.id] || {})[house.characteristics[j].id]));
+  return { rows, cols };
+}
+/** Draw the house. opts: reduce (hide rows and columns with no relationship), mode ('importance' | 'gap'), symbols (true: ● ○ △, false: 9 3 1),
+ *  roof (default true), cell (px, default 28), title (default true), rows/cols (index lists for a custom order). Returns the SVG as a string. */
+function toSVG(house, opts) {
+  opts = opts || {};
+  const C = compute(house.needs, house.characteristics, house.relationships, { mode: opts.mode });
+  let rows = opts.rows || house.needs.map((w, i) => i), cols = opts.cols || house.characteristics.map((h, j) => j);
+  if (opts.reduce) { const r = reduceLists(house); const rs = new Set(r.rows), cs = new Set(r.cols); rows = rows.filter(i => rs.has(i)); cols = cols.filter(j => cs.has(j)); }
+  const cw = opts.cell || 28, half = cw / 2, n = rows.length, m = cols.length;
+  const L = 250, T = 150, RW = 180, titleH = opts.title === false ? 0 : 34, roofH = opts.roof === false || m < 2 ? 8 : m * half + 10;
+  const baseRows = [['Weighted importance', j => fmtNum(C.abs[j])], ['Relative weight', j => Math.round(C.pct[j] * 100) + '%'], ['Rank', j => C.gate[j] ? 'gate' : String(C.rank[j])], ['Difficulty', j => String(house.characteristics[j].difficulty)]];
+  const BH = baseRows.length * 20 + 8;
+  const W = L + m * cw + RW, Hh = titleH + roofH + T + n * cw + BH + 30;
+  const y1 = titleH + roofH, y2 = y1 + T, y3 = y2 + n * cw;
+  const xc = b => L + (b + 0.5) * cw;
+  const sym = opts.symbols === false ? v => (v || '') : v => SYM[v];
+  const fillOf = { 9: '#1c5cab', 3: '#6da7ec', 1: '#cde2fb' }, inkOf = { 9: '#ffffff', 3: '#06213f', 1: '#0b2a4d' };
+  const roofFill = { '++': '#199e70', '+': '#b3e6d1', '−': '#f8cdb8', '−−': '#d95926' }, roofInk = { '++': '#ffffff', '+': '#0b3b2a', '−': '#4a2410', '−−': '#ffffff' };
+  const idx = {}; house.characteristics.forEach((h, j) => { idx[h.id] = j; });
+  const canon = (a, b) => idx[a] < idx[b] ? a + '|' + b : b + '|' + a;
+  const cut = (s, k) => { s = str(s); return s.length > k ? s.slice(0, k - 1) + '…' : s; };
+  let o = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${Hh}" viewBox="0 0 ${W} ${Hh}" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11">`;
+  o += `<rect width="${W}" height="${Hh}" fill="#ffffff"/>`;
+  if (titleH) o += `<text x="8" y="22" font-size="16" font-weight="700" fill="#15212b">${xmlEsc(house.title)}</text><text x="${W - 8}" y="22" text-anchor="end" fill="#5b6977">${xmlEsc([house.meta.date ? 'as of ' + house.meta.date : '', 'weighting by ' + C.mode, opts.reduce ? 'rows and columns with relationships only' : ''].filter(Boolean).join(' · '))}</text>`;
+  // roof
+  if (roofH > 8) for (let a = 0; a < m; a++) for (let b = a + 1; b < m; b++) {
+    const cx = (xc(a) + xc(b)) / 2, cy = y1 - (b - a) * half; const v = house.roof[canon(house.characteristics[cols[a]].id, house.characteristics[cols[b]].id)] || '';
+    o += `<polygon points="${cx},${cy - half} ${cx + half},${cy} ${cx},${cy + half} ${cx - half},${cy}" fill="${roofFill[v] || '#ffffff'}" stroke="#cbd3db"/>`;
+    if (v) o += `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="${roofInk[v]}" font-size="10">${xmlEsc(v)}</text>`;
+  }
+  // header: direction, id, rotated name
+  cols.forEach((j, b) => { const h = house.characteristics[j]; const x = xc(b);
+    o += `<text x="${x}" y="${y1 + 12}" text-anchor="middle" fill="#5b6977">${xmlEsc(h.direction)}</text>`;
+    o += `<text transform="translate(${x + 4},${y2 - 22}) rotate(-90)" fill="${h.gate ? '#b42318' : '#15212b'}" font-weight="600">${xmlEsc(cut(h.short + (h.unit ? ' (' + h.unit + ')' : ''), 30))}</text>`;
+    o += `<text x="${x}" y="${y2 - 6}" text-anchor="middle" fill="#5b6977" font-family="ui-monospace, Menlo, monospace" font-size="10">${xmlEsc(h.id)}</text>`; });
+  o += `<text x="8" y="${y2 - 6}" fill="#5b6977" font-size="10">NEED (WHAT)</text><text x="${L - 6}" y="${y2 - 6}" text-anchor="end" fill="#5b6977" font-size="10">IMP</text>`;
+  o += `<text x="${L + m * cw + 8}" y="${y2 - 6}" fill="#5b6977" font-size="10">TODAY → GOAL · RATIO · GAP %</text>`;
+  // room
+  rows.forEach((i, a) => { const w = house.needs[i]; const y = y2 + a * cw;
+    o += `<text x="8" y="${y + cw / 2 + 4}" fill="#5b6977" font-family="ui-monospace, Menlo, monospace" font-size="10">${xmlEsc(w.id)}</text><text x="40" y="${y + cw / 2 + 4}" fill="#15212b">${xmlEsc(cut(w.short || w.need, 32))}</text><text x="${L - 6}" y="${y + cw / 2 + 4}" text-anchor="end" fill="#15212b" font-weight="600">${w.importance}</text>`;
+    cols.forEach((j, b) => { const h = house.characteristics[j]; const v = (house.relationships[w.id] || {})[h.id] || 0; const x = L + b * cw;
+      o += `<rect x="${x}" y="${y}" width="${cw}" height="${cw}" fill="${fillOf[v] || '#ffffff'}" stroke="#e1e6eb"/>`;
+      if (v) o += `<text x="${x + half}" y="${y + half + 4}" text-anchor="middle" fill="${inkOf[v]}" font-size="12">${xmlEsc(sym(v))}</text>`; });
+    o += `<text x="${L + m * cw + 8}" y="${y + cw / 2 + 4}" fill="#15212b" font-family="ui-monospace, Menlo, monospace" font-size="10">${w.today} → ${w.goal} · ${fmt1(C.ratio[i])}× · ${pct(C.adjPct[i])}</text>`; });
+  // basement
+  baseRows.forEach(([label, f], r) => { const y = y3 + 6 + r * 20;
+    o += `<text x="8" y="${y + 14}" fill="#5b6977">${xmlEsc(label)}</text>`;
+    cols.forEach((j, b) => { const t = f(j); const gate = label === 'Rank' && C.gate[j]; o += `<text x="${xc(b)}" y="${y + 14}" text-anchor="middle" fill="${gate ? '#b42318' : C.top[j] && label === 'Rank' ? '#1c5cab' : '#15212b'}" font-weight="${label === 'Rank' ? 600 : 400}" font-family="ui-monospace, Menlo, monospace" font-size="${cw < 32 ? 9 : 10}">${xmlEsc(t)}</text>`; }); });
+  o += `<line x1="${L}" y1="${y3}" x2="${L + m * cw}" y2="${y3}" stroke="#cbd3db"/>`;
+  o += `<text x="8" y="${Hh - 8}" fill="#5b6977" font-size="10">● 9 strong · ○ 3 medium · △ 1 weak · roof ++ + − −− · red column names are must-pass gates (not ranked)</text>`;
+  return o + '</svg>';
+}
+const fmtNum = x => Number.isInteger(x) ? String(x) : fmt1(x);
+/** Browser helper, in the spirit of JSqfd.init: draw a house into an element from an object or a JSON URL. Returns a promise of the normalised house. */
+function draw(el, src, opts) {
+  const target = typeof el === 'string' ? document.querySelector(el) : el;
+  const ready = typeof src === 'string' ? fetch(src).then(r => { if (!r.ok) throw new Error('could not load ' + src); return r.json(); }) : Promise.resolve(src);
+  return ready.then(obj => { const r = normalize(obj); if (r.errors.length) throw new Error(r.errors.join(' ')); target.innerHTML = toSVG(r.house, opts); return r.house; });
+}
+
 // ---------- diagonalization: pure functions, no DOM ----------
 // Input: mat[i][j] >= 0 for n rows (needs) and m columns (characteristics), in the listed order.
 // Output: a row order and a column order that put the mass of the matrix on the diagonal, the blocks
@@ -441,5 +508,6 @@ function blocks(P,k,total){
 
 return { REL_VALUES, ROOF_VALUES, DIRS, SYM, WORD, ROOF_WORD, DEFAULT_STATUS_SCALE, TESTED_CLASSES, CSV_HEADERS,
   blank, normalize, compute, rankText, relMatrix, linksOf, itemShares, progress, reallyDone, toTSV,
-  parseCSV, toCSVText, classifyCSV, fromCSV, toCSV, report, diagonalize, blocks, spectral, fmt1, pct };
+  parseCSV, toCSVText, classifyCSV, fromCSV, toCSV, report, diagonalize, blocks, spectral, fmt1, pct,
+  toSVG, draw, reduceLists };
 });

@@ -24,14 +24,20 @@ The Input tab: load the sample, open or drop JSON or CSV files, paste JSON, edit
 
 ![The Input tab](docs/images/input.jpg)
 
+The same house drawn as SVG by `node tools/hoq.js svg`, which is also what the page's Download SVG, `HOQ.draw()` and the MCP server's `house_draw` produce:
+
+![The sample house as SVG](docs/images/sample.svg)
+
 ## What you get
 
 | Part | Where | What it does |
 |---|---|---|
 | The page | `web/index.html` | House, Diagonal, Work items, Needs, Characteristics, Roof pairs, Legend, Input. Click any cell, dot or diamond to change it; weights and ranks follow. |
 | The formulas | `web/hoq-core.js` | Every number the page and the workbook show, as pure functions. Node and the browser load the same file. |
-| The input screen | Input tab | Load the sample, start empty, open or drop a `.json` or the CSV files, paste JSON, edit the lists in place, download JSON, CSV or the dated TSV. |
-| The command line | `tools/hoq.js` | Validate a file, print a report, write the TSV, convert between JSON and CSV, compute the diagonal order. |
+| The input screen | Input tab | Load the sample, start empty, open or drop a `.json` or the CSV files, paste JSON, edit the lists in place, download JSON, CSV, SVG or the dated TSV. |
+| The MCP server | `mcp/server.js` | Lets an AI agent build, fill, read and export a house through tools: needs, characteristics, cells, roof, items, priorities, diagonal, drawing, export. See `docs/agent.md`. |
+| The drawing API | `HOQ.toSVG`, `HOQ.draw` | Draw a house from a JSON object or URL into any element, in the spirit of JSqfd, with an option to hide rows and columns that have no relationship. `web/embed.html` shows it in two lines. |
+| The command line | `tools/hoq.js` | Validate a file, print a report, write the TSV, convert between JSON and CSV, draw the SVG, compute the diagonal order. |
 | The workbook | `tools/make_xlsx.py` | The same house as `.xlsx`: roof, room, right wall, basement with live formulas, the Diagonal sheet, roof pairs, legend, lists. |
 | The method | `docs/method.md` | How to run a House of Quality from the first interview to the weekly version of record: what we did, step by step. |
 | The formulas, explained | `docs/formulas.md` | Each formula, what it means, and its spreadsheet equivalent. |
@@ -59,6 +65,30 @@ node tools/hoq.js from-csv out/ house.json                # back to one JSON fil
 
 Add `--gap` to `report` or `tsv` to weight each need by importance × (goal ÷ today) instead of importance alone.
 
+## Use it from an AI agent
+
+`mcp/server.js` is a Model Context Protocol server over stdio. An agent gets tools to start a house, add needs and characteristics, set the room and the roof, record work items, and read the priorities, the diagonal blocks and the items; `house_export` writes the dated TSV, CSV, JSON, SVG or the workbook. The tools run the same code as the page, so an agent and a person editing the page get the same numbers.
+
+```bash
+npm install
+claude mcp add hoq -- node /absolute/path/to/house-of-quality/mcp/server.js --file ./house.json
+npm test        # builds a small house through the server and checks what comes back
+```
+
+`docs/agent.md` lists the tools and the rules an agent should follow when it runs a session with a person: needs come from the stakeholders in their words, importance is theirs to set, a characteristic has a unit, gates are not ranked, the dated TSV is the version of record. The server also offers a `qfd_session` prompt that walks through those steps.
+
+## Draw a house from a JSON file
+
+Two script tags and one call, for a wiki page, a report or a dashboard:
+
+```html
+<script src="hoq-core.js"></script>
+<div id="hoq"></div>
+<script>HOQ.draw('#hoq', 'house.json', { reduce: true });</script>
+```
+
+`reduce` hides the rows and columns that take part in no relationship, so a big house reads small; `symbols: false` prints 9 3 1 instead of ● ○ △; `mode: 'gap'` weights by importance × (goal ÷ today). The same option is on the page as "Rows and columns: With relationships only", and on the command line as `node tools/hoq.js svg house.json out.svg --reduce`. Hiding never changes a number: weights, shares and ranks are always computed over the whole house.
+
 ## The workbook
 
 ```bash
@@ -75,11 +105,14 @@ Write down what the stakeholders need, each with its source and an importance fr
 ## Repository layout
 
 ```
-web/            index.html (the page), hoq-core.js (the formulas), sample-house.js (the sample, loaded by the page)
+web/            index.html (the page), hoq-core.js (the formulas and the drawing), sample-house.js (the sample, loaded by the page), embed.html (HOQ.draw example)
+mcp/            server.js (the MCP server), test-client.js (its test)
 tools/          hoq.js (command line), make_xlsx.py (workbook)
 examples/       sample-house.json and the same house as five CSV files
-docs/           method, formulas, data format, diagonalization
+docs/           method, formulas, data format, diagonalization, agent (the MCP tools and the rules for an agent)
 ```
+
+The page, the CLI, the drawing and the workbook need nothing installed beyond node (and python with openpyxl for the workbook). Only the MCP server has dependencies: `npm install` fetches the MCP SDK.
 
 `web/sample-house.js` is generated from `examples/sample-house.json` with `node tools/hoq.js sample-js examples/sample-house.json web/sample-house.js`.
 

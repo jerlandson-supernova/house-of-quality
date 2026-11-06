@@ -6,6 +6,7 @@
  *   node tools/hoq.js tsv       house.json [out.tsv]    the dated TSV (the version of record), default house-YYYY-MM-DD.tsv
  *   node tools/hoq.js csv       house.json out-dir/     the five CSV files
  *   node tools/hoq.js from-csv  dir/ [out.json]         build house.json from needs.csv, characteristics.csv, matrix.csv, roof.csv, items.csv
+ *   node tools/hoq.js svg       house.json [out.svg] [--reduce] [--numbers] [--gap]   draw the house as SVG
  *   node tools/hoq.js diag      house.json              the diagonal order and measures as JSON (used by tools/make_xlsx.py)
  *   node tools/hoq.js sample-js house.json out.js       write the house as window.HOQ_SAMPLE = … for the web page
  */
@@ -16,7 +17,7 @@ const H = require(path.join(__dirname, '..', 'web', 'hoq-core.js'));
 
 const [cmd, a1, a2] = process.argv.slice(2);
 const flags = process.argv.slice(2).filter(x => x.startsWith('--'));
-if (!cmd || !a1) { console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(1, 11).join('\n').replace(/^ \*\s?/gm, '')); process.exit(1); }
+if (!cmd || !a1) { console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(1, 12).join('\n').replace(/^ \*\s?/gm, '')); process.exit(1); }
 
 function loadHouse(file) {
   const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -70,6 +71,12 @@ if (cmd === 'from-csv') {
   fs.writeFileSync(out, JSON.stringify(house, null, 2));
   console.log('wrote', out, 'from', Object.keys(tables).join(', '));
 }
+if (cmd === 'svg') {
+  const { house } = loadHouse(a1);
+  const out = a2 && !a2.startsWith('--') ? a2 : path.basename(a1, '.json') + '.svg';
+  fs.writeFileSync(out, H.toSVG(house, { reduce: flags.includes('--reduce'), symbols: !flags.includes('--numbers'), mode: flags.includes('--gap') ? 'gap' : 'importance' }));
+  console.log('wrote', out);
+}
 if (cmd === 'diag') {
   const { house } = loadHouse(a1);
   const use = flags.includes('--strong') ? 'strong' : 'all';
@@ -97,4 +104,4 @@ if (cmd === 'sample-js') {
   fs.writeFileSync(a2 || 'web/sample-house.js', 'window.HOQ_SAMPLE=' + JSON.stringify(house, null, 1) + ';\n');
   console.log('wrote', a2 || 'web/sample-house.js');
 }
-if (!['validate', 'report', 'tsv', 'csv', 'from-csv', 'diag', 'sample-js'].includes(cmd)) { console.error('unknown command', cmd); process.exit(1); }
+if (!['validate', 'report', 'tsv', 'csv', 'from-csv', 'svg', 'diag', 'sample-js'].includes(cmd)) { console.error('unknown command', cmd); process.exit(1); }
