@@ -42,7 +42,9 @@ function plan(target, skill, dir, scope) {
   }
 }
 const sectionText = body => MARK0 + '\n' + body.trim() + '\n' + MARK1 + '\n';
-function readManifest(p) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { return { version: 1, entries: [] }; } }
+function readManifest(p) { try { const m = JSON.parse(fs.readFileSync(p, 'utf8')); return m && Array.isArray(m.entries) ? m : { version: 1, entries: [] }; } catch (e) { return { version: 1, entries: [] }; } }
+/** The targets an opts asks for, checked before anything is written. */
+function wanted(opts) { const t = opts.targets === 'all' || !opts.targets ? TARGETS : Array.isArray(opts.targets) ? opts.targets : String(opts.targets).split(','); const bad = t.filter(x => !TARGETS.includes(x)); if (bad.length) throw new Error('unknown target ' + bad.join(', ') + ' (use ' + TARGETS.join(', ') + ' or all)'); return t; }
 function writeManifest(p, m) { if (m.entries.length) fs.writeFileSync(p, JSON.stringify(m, null, 2) + '\n'); else if (fs.existsSync(p)) fs.unlinkSync(p); }
 function currentSection(file) { if (!fs.existsSync(file)) return null; const cur = fs.readFileSync(file, 'utf8'); const i = cur.indexOf(MARK0), j = cur.indexOf(MARK1); return i >= 0 && j > i ? cur.slice(i, j + MARK1.length) + '\n' : null; }
 
@@ -51,7 +53,7 @@ function install(opts) {
   const log = opts.log || (() => {});
   const dir = path.resolve(opts.dir || '.');
   const scope = opts.scope === 'user' ? 'user' : 'project';
-  const targets = opts.targets === 'all' || !opts.targets ? TARGETS : opts.targets;
+  const targets = wanted(opts);
   const manifestPath = scope === 'user' ? path.join(os.homedir(), '.hoq-skills.json') : path.join(dir, '.hoq-skills.json');
   const manifest = readManifest(manifestPath);
   const result = { written: [], skipped: [], kept: [], manifest: manifestPath };
@@ -85,7 +87,7 @@ function install(opts) {
   return result;
 }
 
-/** Remove what install wrote, and only that: a file or section changed since is left in place and reported. */
+/** Remove what install wrote, and only that: a file or section changed since is left in place and reported. opts.targets limits it. */
 function uninstall(opts) {
   const log = opts.log || (() => {});
   const dir = path.resolve(opts.dir || '.');
@@ -93,8 +95,10 @@ function uninstall(opts) {
   const manifestPath = scope === 'user' ? path.join(os.homedir(), '.hoq-skills.json') : path.join(dir, '.hoq-skills.json');
   const manifest = readManifest(manifestPath);
   const result = { removed: [], kept: [], manifest: manifestPath };
+  const targets = wanted(opts);
   const remaining = [];
   manifest.entries.forEach(e => {
+    if (!targets.includes(e.target)) { remaining.push(e); return; }
     if (e.kind === 'file') {
       if (!fs.existsSync(e.file)) { log('already gone ' + e.file); return; }
       const cur = fs.readFileSync(e.file, 'utf8');

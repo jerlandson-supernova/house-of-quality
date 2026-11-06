@@ -45,5 +45,22 @@ h.needs.push({ id: 'W9', need: 'Orphan', short: 'Orphan', source: '', importance
 const N2 = H.nextCells(h, 3); ok(N2.unaddressedNeeds[0] === 'W9' && N2.cells[0].need === 'W9', 'an unaddressed need ranks first');
 const md = H.toMarkdown(h); ok(md.includes('## The room') && md.includes('W9') && md.includes('Needs with no relationship: W9'), 'markdown mentions the orphan');
 const svg = H.toSVG(h, { reduce: true }); ok(!svg.includes('Orphan'), 'reduce hides the orphan in the drawing');
+// proposals for whole rows and columns: fields normalized, id assigned, rivals by text dropped, defaulted scores flagged
+const before = h.needs.length;
+const n1 = H.propose(h, { kind: 'need', fields: { need: 'Lid opens with one hand', source: 'Interview 3' }, by: 'agent-a', evidence: 'one hand' }).proposal;
+const n2 = H.propose(h, { kind: 'need', fields: { need: 'lid opens with one hand ' }, by: 'agent-b' }).proposal;
+ok(n1 && n2 && n1.kind === 'need' && h.proposals.length === 2 && h.needs.length === before, 'need proposals add no row');
+const cn = H.confirmProposal(h, n1.id, 'John');
+ok(cn.added && /^W\d+$/.test(cn.added.id) && h.needs.filter(x => x.id === cn.added.id).length === 1 && h.needs.length === before + 1 && JSON.stringify(h.relationships[cn.added.id]) === '{}', 'confirmed need added once with a free id: ' + JSON.stringify(cn.added && cn.added.id));
+ok(cn.dropped.length === 1 && cn.dropped[0] === n2.id && h.proposals.length === 0, 'rival need by text dropped and reported');
+ok(cn.warning && /importance, today, goal/.test(cn.warning) && h.needs[before].importance === 3, 'defaulted scores flagged: ' + cn.warning);
+ok(h.provenance['need:' + cn.added.id].by === 'agent-a' && h.provenance['need:' + cn.added.id].confirmedBy === 'John' && h.provenance['need:' + cn.added.id].evidence === 'one hand', 'need provenance');
+const n3 = H.propose(h, { kind: 'need', fields: { need: 'Given', importance: 4, today: 2, goal: 5 }, by: 'agent-a' }).proposal; ok(!H.confirmProposal(h, n3.id, 'John').warning && h.needs[h.needs.length - 1].importance === 4, 'no warning when the scores were given');
+ok(H.propose(h, { kind: 'need', fields: { id: 'W1', need: 'Clash' } }).error, 'an id already in use is refused');
+ok(H.propose(h, { kind: 'characteristic', fields: { unit: 'N' } }).error, 'a member without text is refused');
+const c1 = H.propose(h, { kind: 'characteristic', value: 'Lid opening force', fields: { unit: 'N', direction: 'down', target: '≤ 15 N' }, by: 'agent-a' }).proposal;
+ok(c1 && H.describeProposal(c1) === 'new characteristic: Lid opening force (N)', 'characteristic described with its unit');
+const cc = H.confirmProposal(h, c1.id, 'John');
+ok(cc.added && cc.added.name === 'Lid opening force' && cc.added.unit === 'N' && cc.added.direction === '↓' && h.characteristics[h.characteristics.length - 1].id === cc.added.id && h.provenance['characteristic:' + cc.added.id].confirmedBy === 'John' && !cc.warning, 'characteristic text taken from value, direction word mapped: ' + JSON.stringify(cc.added));
 if (fails) { console.error(fails, 'core checks failed'); process.exit(1); }
 console.log('core checks ok');

@@ -20,6 +20,11 @@ ok(fs.readFileSync(path.join(dir, '.github/instructions/hoq.instructions.md'), '
 ok(fs.readFileSync(path.join(dir, '.claude/skills/hoq/SKILL.md'), 'utf8') === skill, 'claude skill verbatim');
 const l1 = S.list({ dir }); ok(l1.entries.length === 6 && l1.entries.every(e => e.state === 'intact'), 'list: six intact');
 const r2 = S.install({ targets: 'all', dir, skill }); ok(r2.written.length === 6 && r2.kept.length === 0, 're-install is a no-op');
+// uninstall honours targets; an unknown target is refused before anything is written
+const ut = S.uninstall({ dir, targets: ['copilot'] }); ok(ut.removed.length === 1 && !fs.existsSync(path.join(dir, '.github/instructions/hoq.instructions.md')) && fs.existsSync(path.join(dir, '.cursor/rules/hoq.mdc')) && S.list({ dir }).entries.length === 5, 'uninstall --target removes only that target: ' + JSON.stringify(ut.removed));
+const badDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hoq-bad-')); let threw = ''; try { S.install({ targets: ['claude', 'codx'], dir: badDir, skill }); } catch (e) { threw = e.message; }
+ok(/unknown target codx/.test(threw) && !fs.existsSync(path.join(badDir, '.claude')) && !fs.existsSync(path.join(badDir, '.hoq-skills.json')), 'unknown target refused before anything is written: ' + threw);
+ok(S.install({ targets: ['copilot'], dir, skill }).written.length === 1 && S.list({ dir }).entries.length === 6, 'copilot back');
 // the user edits two pieces
 const cursorFile = path.join(dir, '.cursor/rules/hoq.mdc'); fs.appendFileSync(cursorFile, '\nMy own rule.\n');
 const gem = path.join(dir, 'GEMINI.md'); fs.writeFileSync(gem, fs.readFileSync(gem, 'utf8').replace('# House of Quality', '# House of Quality (edited)'));
@@ -41,6 +46,6 @@ const ru = S.install({ targets: 'all', dir, skill, scope: 'user' });
 ok(ru.written.length === 3 && ru.skipped.length === 3 && fs.existsSync(path.join(home, '.claude/skills/hoq/SKILL.md')) && fs.existsSync(path.join(home, '.gemini/GEMINI.md')), 'user scope: claude, codex, gemini only: ' + JSON.stringify(ru.written.map(w => w.target)));
 S.uninstall({ scope: 'user', dir }); ok(!fs.existsSync(path.join(home, '.claude/skills/hoq/SKILL.md')), 'user uninstall');
 os.homedir = realHome;
-fs.rmSync(dir, { recursive: true, force: true }); fs.rmSync(home, { recursive: true, force: true });
+fs.rmSync(dir, { recursive: true, force: true }); fs.rmSync(home, { recursive: true, force: true }); fs.rmSync(badDir, { recursive: true, force: true });
 if (fails) { console.error(fails, 'skills checks failed'); process.exit(1); }
 console.log('skills checks ok');

@@ -5,7 +5,8 @@
  *
  * Providers: 'anthropic' (the Anthropic SDK; credentials from ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN or an `ant auth login`
  * profile; model HOQ_ASSIST_MODEL, default claude-opus-5-5) and 'mock' (deterministic, for tests and dry runs).
- * Calls are bounded: at most maxCells cells per call, a request timeout, and a max_tokens ceiling; every result reports usage.
+ * Calls are bounded: at most maxCells cells per call, a request timeout (timeoutMs, default 50 s) with maxRetries (default 1) and a
+ * max_tokens ceiling; every result reports usage. Keep attempts × timeout under the MCP client's request timeout (60 s by default).
  */
 'use strict';
 const path = require('path');
@@ -46,7 +47,7 @@ function mockProvider() {
 function anthropicProvider(opts) {
   const Anthropic = require('@anthropic-ai/sdk');
   const { zodOutputFormat } = require('@anthropic-ai/sdk/helpers/zod');
-  const client = new Anthropic({ timeout: opts.timeoutMs || 90000, maxRetries: 2 });
+  const client = new Anthropic({ timeout: opts.timeoutMs, maxRetries: opts.maxRetries });
   const model = opts.model || DEFAULT_MODEL;
   const usageOf = r => r && r.usage ? { input_tokens: r.usage.input_tokens, output_tokens: r.usage.output_tokens } : {};
   async function parse(system, user, schema) {
@@ -81,22 +82,26 @@ function anthropicProvider(opts) {
 /** Make an assist. opts: {provider: 'anthropic'|'mock', model, timeoutMs, maxCells}. */
 function createAssist(opts) {
   opts = opts || {};
-  const provider = opts.provider === 'mock' ? mockProvider() : anthropicProvider(opts);
+  const name = opts.provider || 'anthropic';
+  if (name !== 'anthropic' && name !== 'mock') throw new Error('assist provider must be anthropic or mock, not "' + name + '"');
+  const timeoutMs = opts.timeoutMs > 0 ? opts.timeoutMs : 50000, maxRetries = opts.maxRetries >= 0 ? opts.maxRetries : 1;
+  const provider = name === 'mock' ? mockProvider() : anthropicProvider(Object.assign({}, opts, { timeoutMs, maxRetries }));
   const maxCells = opts.maxCells || 12;
   const relValue = v => { const n = Math.round(Number(v)); return [0, 1, 3, 9].includes(n) ? n : null; };
   return {
-    provider: provider.name, model: provider.model, maxCells,
+    provider: provider.name, model: provider.model, maxCells, timeoutMs, maxRetries,
     /** Suggest values for empty cells (the house_next cells by default) and record them as proposals. */
     async suggest(house, cells, actor) {
       const wanted = (cells && cells.length ? cells : H.nextCells(house, maxCells).cells.map(c => ({ need: c.need, characteristic: c.characteristic }))).slice(0, maxCells);
       const valid = wanted.filter(c => house.needs.some(w => w.id === c.need) && house.characteristics.some(h => h.id === c.characteristic) && !(house.relationships[c.need] || {})[c.characteristic]);
-      if (!valid.length) return { proposed: [], skipped: wanted.length, usage: {} };
+      const skipped = wanted.length - valid.length;
+      if (!valid.length) return { proposed: [], blank: [], dropped: 0, skipped, usage: {} };
       const r = await provider.suggestCells(house, valid);
       const proposed = [], dropped = [];
       r.cells.forEach(s => { const v = relValue(s.value); const known = valid.some(c => c.need === s.need && c.characteristic === s.characteristic); if (v === null || !known) { dropped.push(s); return; }
         if (v === 0) { dropped.push(Object.assign({ why: 'suggested blank' }, s)); return; }
         const p = H.propose(house, { kind: 'cell', need: s.need, characteristic: s.characteristic, value: v, by: actor, note: String(s.reason || '').slice(0, 300), evidence: 'model suggestion (' + provider.model + ')' }); if (!p.error) proposed.push(p.proposal); });
-      return { proposed, blank: dropped.filter(d => d.why).map(d => d.need + ' × ' + d.characteristic), dropped: dropped.filter(d => !d.why).length, usage: r.usage };
+      return { proposed, blank: dropped.filter(d => d.why).map(d => d.need + ' × ' + d.characteristic), dropped: dropped.filter(d => !d.why).length, skipped, usage: r.usage };
     },
     /** Propose new needs or characteristics from supplied text (interview notes, a survey, a review), each with its excerpt. */
     async members(house, kind, text, actor) {

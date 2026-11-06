@@ -12,7 +12,8 @@
  *   --assist [P]   add the optional model-backed assist tools (assist_status, assist_suggest, assist_members). They only propose.
  *                  P names the provider (anthropic or mock) and beats HOQ_ASSIST_PROVIDER.
  *                  Provider HOQ_ASSIST_PROVIDER=anthropic (default; credentials from ANTHROPIC_API_KEY or `ant auth login`) or mock;
- *                  model HOQ_ASSIST_MODEL (default claude-opus-5-5); HOQ_ASSIST_MAX_CELLS (default 12).
+ *                  model HOQ_ASSIST_MODEL (default claude-opus-5-5); HOQ_ASSIST_MAX_CELLS (default 12); HOQ_ASSIST_TIMEOUT_MS per request
+ *                  (default 50000) and HOQ_ASSIST_RETRIES (default 1): keep attempts × timeout under the MCP client's request timeout (60 s by default).
  *
  * Add it to Claude Code:   claude mcp add hoq -- node /path/to/house-of-quality/mcp/server.js --file ./house.json
  * The tools wrap web/hoq-core.js, the same code the page and the CLI run. docs/agent.md says how an agent should run a session.
@@ -33,7 +34,12 @@ const ACTOR = argOf('--actor', process.env.HOQ_ACTOR || 'agent');
 const DIRECT = args.includes('--direct');
 const CAN_CONFIRM = !args.includes('--no-confirm');
 const ANYWHERE = args.includes('--anywhere');
-const ASSIST = args.includes('--assist') ? require(path.join(__dirname, 'assist.js')).createAssist({ provider: argOf('--assist', '') || process.env.HOQ_ASSIST_PROVIDER || 'anthropic', model: process.env.HOQ_ASSIST_MODEL, maxCells: +(process.env.HOQ_ASSIST_MAX_CELLS || 12) }) : null;
+const envNum = (k, dflt) => { const v = Number(process.env[k]); return process.env[k] !== undefined && process.env[k] !== '' && Number.isFinite(v) && v >= 0 ? v : dflt; };
+let ASSIST = null;
+if (args.includes('--assist')) {
+  try { ASSIST = require(path.join(__dirname, 'assist.js')).createAssist({ provider: argOf('--assist', '') || process.env.HOQ_ASSIST_PROVIDER || 'anthropic', model: process.env.HOQ_ASSIST_MODEL, maxCells: envNum('HOQ_ASSIST_MAX_CELLS', 12) || 12, timeoutMs: envNum('HOQ_ASSIST_TIMEOUT_MS', 50000), maxRetries: envNum('HOQ_ASSIST_RETRIES', 1) }); }
+  catch (e) { console.error('hoq: --assist: ' + e.message); process.exit(1); }
+}
 // Files the agent may read or write: inside the house's folder unless --anywhere. A refused path is an error the agent can read.
 const baseDir = () => filePath ? path.dirname(filePath) : process.cwd();
 function safePath(p) { const abs = path.resolve(p); if (ANYWHERE) return abs; const base = baseDir(); if (abs === base || abs.startsWith(base + path.sep)) return abs; throw new Error('Path ' + abs + ' is outside the house folder ' + base + '. Use a path inside it, or start the server with --anywhere.'); }
@@ -61,7 +67,7 @@ function after(op, msg, extra) { const r = renorm(); house.revision = (house.rev
 const C = mode => H.compute(house.needs, house.characteristics, house.relationships, { mode });
 const relValue = v => { const s = String(v).trim().toLowerCase(); if (['strong', '9', '●'].includes(s)) return 9; if (['medium', '3', '○'].includes(s)) return 3; if (['weak', '1', '△'].includes(s)) return 1; if (['none', '0', '', 'blank'].includes(s)) return 0; return null; };
 const roofValue = v => { const s = String(v).trim().replace(/--/g, '−−').replace(/^-$/, '−'); return H.ROOF_VALUES.includes(s) ? s : null; };
-const nextId = (prefix, list) => { let n = list.length + 1; while (house.needs.some(x => x.id === prefix + n) || house.characteristics.some(x => x.id === prefix + n)) n++; return prefix + n; };
+const nextId = prefix => H.nextFreeId(house, prefix);
 const CONFIRM_HINT = 'It counts in no number until a person confirms it, on the page (Input tab, Proposals) or with proposal_confirm.';
 
 const server = new McpServer({ name: 'house-of-quality', version: '0.3.0' }, {
@@ -95,7 +101,7 @@ const who = z.string().optional().describe('who gave this value (a stakeholder\'
 const needShape = { id: z.string().optional().describe('W1, W2… ; omit to add a new need'), need: z.string().optional().describe('the need in the stakeholder\'s words'), short: z.string().optional(), source: z.string().optional().describe('who said it'), importance: z.number().int().min(1).max(5).optional(), today: z.number().int().min(1).max(5).optional(), goal: z.number().int().min(1).max(5).optional(), links: z.string().optional().describe('work-item keys, e.g. "MUG-3, MUG-5"'), why: z.string().optional(), by: who, note: z.string().optional() };
 server.registerTool('need_set', { title: 'Add or update a need (row)', description: 'Add a need, or update the given fields of an existing one by id. Importance, today and goal are recorded with who gave them ("by"): they belong to the stakeholders, never to the agent.', inputSchema: needShape },
   async (a) => { let w = a.id ? house.needs.find(x => x.id === a.id) : null;
-    if (!w) { if (a.id && house.characteristics.some(x => x.id === a.id)) return fail('Id ' + a.id + ' is a characteristic.'); if (!a.need) return fail('A new need needs the "need" text.'); w = { id: a.id || nextId('W', house.needs), need: '', short: '', source: '', importance: 3, today: 1, goal: 5, links: '', why: '' }; house.needs.push(w); house.relationships[w.id] = {}; }
+    if (!w) { if (a.id && house.characteristics.some(x => x.id === a.id)) return fail('Id ' + a.id + ' is a characteristic.'); if (!a.need) return fail('A new need needs the "need" text.'); w = { id: a.id || nextId('W'), need: '', short: '', source: '', importance: 3, today: 1, goal: 5, links: '', why: '' }; house.needs.push(w); house.relationships[w.id] = {}; }
     ['need', 'short', 'source', 'importance', 'today', 'goal', 'links', 'why'].forEach(f => { if (a[f] !== undefined) w[f] = a[f]; }); if (!w.short) w.short = w.need.slice(0, 48);
     ['importance', 'today', 'goal'].forEach(f => { if (a[f] !== undefined) H.setProvenance(house, f, w.id, null, a[f], { by: a.by || ACTOR, note: a.note }); });
     return after('need.set', 'Need ' + w.id + ' set: ' + w.need, { id: w.id }); });
@@ -104,7 +110,7 @@ server.registerTool('need_remove', { title: 'Remove a need', description: 'Remov
 const charShape = { id: z.string().optional().describe('H1, H2… ; omit to add a new characteristic'), name: z.string().optional().describe('the measurable characteristic'), short: z.string().optional(), unit: z.string().optional(), direction: z.string().optional().describe('↑ larger is better, ↓ smaller is better, ◎ meet the target (or up/down/target)'), target: z.string().optional(), targetShort: z.string().optional(), today: z.string().optional(), todayShort: z.string().optional(), links: z.string().optional(), difficulty: z.number().int().min(1).max(5).optional(), gate: z.boolean().optional().describe('true for a must-pass gate: kept out of the rank') };
 server.registerTool('characteristic_set', { title: 'Add or update a characteristic (column)', description: 'Add a measurable characteristic, or update the given fields of an existing one by id.', inputSchema: charShape },
   async (a) => { let h = a.id ? house.characteristics.find(x => x.id === a.id) : null;
-    if (!h) { if (a.id && house.needs.some(x => x.id === a.id)) return fail('Id ' + a.id + ' is a need.'); if (!a.name) return fail('A new characteristic needs the "name".'); h = { id: a.id || nextId('H', house.characteristics), name: '', short: '', unit: '', direction: '↑', target: '', targetShort: '', today: '', todayShort: '', links: '', difficulty: 3, gate: false }; house.characteristics.push(h); }
+    if (!h) { if (a.id && house.needs.some(x => x.id === a.id)) return fail('Id ' + a.id + ' is a need.'); if (!a.name) return fail('A new characteristic needs the "name".'); h = { id: a.id || nextId('H'), name: '', short: '', unit: '', direction: '↑', target: '', targetShort: '', today: '', todayShort: '', links: '', difficulty: 3, gate: false }; house.characteristics.push(h); }
     ['name', 'short', 'unit', 'direction', 'target', 'targetShort', 'today', 'todayShort', 'links', 'difficulty', 'gate'].forEach(f => { if (a[f] !== undefined) h[f] = a[f]; }); if (!h.short) h.short = h.name.slice(0, 36);
     return after('characteristic.set', 'Characteristic ' + h.id + ' set: ' + h.name, { id: h.id }); });
 server.registerTool('characteristic_remove', { title: 'Remove a characteristic', description: 'Remove a characteristic, its column and its roof pairs.', inputSchema: { id: z.string() } },
@@ -134,14 +140,14 @@ server.registerTool('roof_set', { title: 'Set a roof pair', description: 'How tw
     const k = H.provKey(house, 'roof', a, b).slice(5); if (v) house.roof[k] = v; else delete house.roof[k]; H.setProvenance(house, 'roof', a, b, v, { by: ACTOR, note, evidence }); return after('roof.set', `Roof ${k} = ${v || 'none'}.`); });
 
 // ---------- proposals ----------
-server.registerTool('propose', { title: 'Propose a value', description: 'Suggest a value for a person to confirm: a room cell, a roof pair, or a need\'s importance, today or goal. Counts in no number until confirmed.',
-  inputSchema: Object.assign({ kind: z.enum(['cell', 'roof', 'importance', 'today', 'goal']), need: z.string().optional(), characteristic: z.string().optional(), a: z.string().optional(), b: z.string().optional(), value: z.union([z.number(), z.string()]) }, evidenceShape) },
+server.registerTool('propose', { title: 'Propose a value', description: 'Suggest something for a person to confirm: a room cell, a roof pair, a need\'s importance, today or goal, or a whole new need or characteristic (kind need or characteristic, with its fields in the data format\'s names: need or name, short, source, unit, direction, target, importance, today, goal…; the id is assigned on confirmation). Counts in no number until confirmed.',
+  inputSchema: Object.assign({ kind: z.enum(H.PROPOSAL_KINDS), need: z.string().optional(), characteristic: z.string().optional(), a: z.string().optional(), b: z.string().optional(), value: z.union([z.number(), z.string()]).optional().describe('the cell, roof or score value; for a need or characteristic, its text when not in fields'), fields: z.record(z.string(), z.any()).optional().describe('for kind need or characteristic: the row or column to add') }, evidenceShape) },
   async (p) => { const r = H.propose(house, Object.assign({}, p, { by: ACTOR })); if (r.error) return fail(r.error); return after('propose', `Proposed ${r.proposal.id}: ${H.describeProposal(r.proposal)}${r.replaced ? ' (replaces an earlier proposal of yours for the same value)' : ''}. ${CONFIRM_HINT}`, { id: r.proposal.id }); });
 server.registerTool('proposals_list', { title: 'Proposals awaiting confirmation', description: 'Every proposed value not yet confirmed or rejected.', inputSchema: {} },
   async () => text((house.proposals || []).map(p => Object.assign({ what: H.describeProposal(p) }, p))));
 if (CAN_CONFIRM) server.registerTool('proposal_confirm', { title: 'Confirm a proposal (a person\'s decision)', description: 'Apply a proposed value. Only call this when the person has said so in the conversation; give their name as confirmedBy. The provenance keeps both who proposed and who confirmed.',
   inputSchema: { id: z.string(), confirmedBy: z.string().min(1).describe('the person who confirmed, by name') } },
-  async ({ id, confirmedBy }) => { if (confirmedBy.trim().toLowerCase() === ACTOR.toLowerCase()) return fail('confirmedBy must be a person, not the agent.'); const r = H.confirmProposal(house, id, confirmedBy); if (r.error) return fail(r.error); return after('proposal.confirm', `Confirmed ${id} by ${confirmedBy}: ${H.describeProposal(r.applied)}.` + (r.dropped.length ? ` Other proposals for the same value dropped: ${r.dropped.join(', ')}.` : ''), { id, confirmedBy }); });
+  async ({ id, confirmedBy }) => { if (confirmedBy.trim().toLowerCase() === ACTOR.toLowerCase()) return fail('confirmedBy must be a person, not the agent.'); const r = H.confirmProposal(house, id, confirmedBy); if (r.error) return fail(r.error); return after('proposal.confirm', `Confirmed ${id} by ${confirmedBy}: ${H.describeProposal(r.applied)}${r.added ? ' (added as ' + r.added.id + ')' : ''}.` + (r.dropped.length ? ` Other proposals for the same value dropped: ${r.dropped.join(', ')}.` : '') + (r.warning ? ` Warning: ${r.warning}` : ''), { id, confirmedBy, added: r.added ? r.added.id : undefined }); });
 server.registerTool('proposal_reject', { title: 'Reject a proposal', description: 'Drop a proposed value, with a reason for the log.', inputSchema: { id: z.string(), reason: z.string().optional() } },
   async ({ id, reason }) => { const r = H.rejectProposal(house, id); if (r.error) return fail(r.error); return after('proposal.reject', `Rejected ${id}: ${H.describeProposal(r.rejected)}.${reason ? ' ' + reason : ''}`, { id, reason }); });
 server.registerTool('house_next', { title: 'What to fill next', description: 'The empty cells worth looking at, ranked: needs nothing serves, needs with no strong driver, characteristics driving nothing, then by weight. Most cells of a good house stay blank, so this names the structural gaps, not every empty cell.',
@@ -152,16 +158,18 @@ server.registerTool('house_next', { title: 'What to fill next', description: 'Th
 if (ASSIST) {
   const assistActor = 'assist:' + ASSIST.model;
   server.registerTool('assist_status', { title: 'Assist status', description: 'Which provider and model the assist uses, and its limits. The assist only proposes; nothing it says counts until a person confirms it.', inputSchema: {} },
-    async () => text({ provider: ASSIST.provider, model: ASSIST.model, maxCellsPerCall: ASSIST.maxCells, actor: assistActor, writes: 'proposals only' }));
+    async () => text({ provider: ASSIST.provider, model: ASSIST.model, maxCellsPerCall: ASSIST.maxCells, timeoutMs: ASSIST.timeoutMs, maxRetries: ASSIST.maxRetries, actor: assistActor, writes: 'proposals only' }));
   server.registerTool('assist_suggest', { title: 'Ask the model to suggest cell values', description: 'For the empty cells worth looking at (house_next, or the cells you name), ask the model for 9/3/1/0 with a one-line reason. Each non-blank suggestion becomes a proposal for a person to confirm; blanks are reported, not recorded. Bounded to maxCellsPerCall.',
     inputSchema: { cells: z.array(z.object({ need: z.string(), characteristic: z.string() })).optional().describe('cells to rate; default: the top cells from house_next'), limit: z.number().int().min(1).max(50).optional() } },
     async ({ cells, limit }) => { try { const r = await ASSIST.suggest(house, cells || (limit ? H.nextCells(house, limit).cells.map(c => ({ need: c.need, characteristic: c.characteristic })) : null), assistActor);
-      return after('assist.suggest', `${r.proposed.length} proposal${r.proposed.length === 1 ? '' : 's'} from ${ASSIST.model}: ${r.proposed.map(p => p.id + ' ' + H.describeProposal(p) + (p.note ? ' (' + p.note + ')' : '')).join('; ') || 'none'}.` + (r.blank && r.blank.length ? ` Suggested blank: ${r.blank.join(', ')}.` : '') + (r.dropped ? ` ${r.dropped} unusable answers dropped.` : '') + ` Usage: ${JSON.stringify(r.usage)}. ${CONFIRM_HINT}`, { usage: r.usage }); }
+      const msg = `${r.proposed.length} proposal${r.proposed.length === 1 ? '' : 's'} from ${ASSIST.model}: ${r.proposed.map(p => p.id + ' ' + H.describeProposal(p) + (p.note ? ' (' + p.note + ')' : '')).join('; ') || 'none'}.` + (r.blank && r.blank.length ? ` Suggested blank: ${r.blank.join(', ')}.` : '') + (r.skipped ? ` ${r.skipped} cell${r.skipped === 1 ? '' : 's'} skipped (already set, or unknown ids).` : '') + (r.dropped ? ` ${r.dropped} unusable answers dropped.` : '') + ` Usage: ${JSON.stringify(r.usage)}.`;
+      return r.proposed.length ? after('assist.suggest', msg + ' ' + CONFIRM_HINT, { usage: r.usage }) : text(msg + ' Nothing was recorded.'); }
       catch (e) { return fail('assist_suggest failed: ' + e.message); } });
   server.registerTool('assist_members', { title: 'Ask the model to extract needs or characteristics from text', description: 'Give it interview notes, a survey, a review or a spec; it proposes needs (in the source\'s words, with the excerpt) or characteristics (only ones with a unit). Each becomes a proposal for a person to confirm.',
     inputSchema: { kind: z.enum(['needs', 'characteristics']), text: z.string().min(10).describe('the source text, up to about 20,000 characters') } },
     async ({ kind, text: src }) => { try { const r = await ASSIST.members(house, kind, src, assistActor);
-      return after('assist.members', `${r.proposed.length} proposed ${kind} from ${ASSIST.model}: ${r.proposed.map(p => p.id + ' ' + H.describeProposal(p)).join('; ') || 'none'}. Usage: ${JSON.stringify(r.usage)}. ${CONFIRM_HINT}`, { usage: r.usage }); }
+      const msg = `${r.proposed.length} proposed ${kind} from ${ASSIST.model}: ${r.proposed.map(p => p.id + ' ' + H.describeProposal(p)).join('; ') || 'none'}. Usage: ${JSON.stringify(r.usage)}.`;
+      return r.proposed.length ? after('assist.members', msg + ' ' + CONFIRM_HINT, { usage: r.usage }) : text(msg + ' Nothing was recorded.'); }
       catch (e) { return fail('assist_members failed: ' + e.message); } });
 }
 

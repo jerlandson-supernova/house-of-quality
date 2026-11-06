@@ -8,7 +8,7 @@
 git clone https://github.com/jerlandson-supernova/house-of-quality
 cd house-of-quality && npm install
 claude mcp add hoq -- node "$PWD/mcp/server.js" --file ./house.json
-node tools/hoq.js skills install --target all --project .      # the skill for Claude Code, Codex, Cursor and AGENTS.md readers; --user installs the Claude and Codex ones for every project
+node tools/hoq.js skills install --target all --project .      # the skill for Claude Code, Codex, Cursor, Copilot, Gemini and AGENTS.md readers; --user installs the Claude, Codex and Gemini ones for every project
 ```
 
 Other clients take the same command (`node`) and arguments. Options:
@@ -20,8 +20,7 @@ Other clients take the same command (`node`) and arguments. Options:
 | `--direct` | let the agent write room cells and roof pairs directly, with provenance, for imports and scripts. Without it they become proposals |
 | `--no-confirm` | remove `proposal_confirm`, so only a person on the page can confirm. `proposal_confirm` refuses the agent's own name but cannot check that the person really said yes; use this flag when that matters |
 | `--anywhere` | let the agent read and write files outside the house's folder. By default `house_open`, `house_save`, `house_export`, `house_draw` and `house_markdown` refuse a path outside the folder of `--file` (or the working directory) |
-
-| `--assist [provider]` | add the assist tools below. `provider` is `anthropic` (default; credentials from `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` or an `ant auth login` profile; model `HOQ_ASSIST_MODEL`, default `claude-opus-5-5`) or `mock` (deterministic, no key). `HOQ_ASSIST_MAX_CELLS` bounds one call (default 12) |
+| `--assist [provider]` | add the assist tools below. `provider` is `anthropic` (default; credentials from `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` or an `ant auth login` profile; model `HOQ_ASSIST_MODEL`, default `claude-opus-5-5`) or `mock` (deterministic, no key); any other name is refused at startup. `HOQ_ASSIST_MAX_CELLS` bounds one call (default 12); `HOQ_ASSIST_TIMEOUT_MS` (default 50000) and `HOQ_ASSIST_RETRIES` (default 1) bound one request. Keep attempts × timeout under the MCP client's request timeout (60 s by default), or the client gives up while the server still records the proposals |
 
 `npm test` runs the core checks, the skills installer checks and a client against the server in proposal mode, direct mode and assist (mock) mode.
 
@@ -41,7 +40,7 @@ Use it the way you would use a junior colleague's first pass: ask for suggestion
 
 By default, a room cell or roof pair the agent sets does not change the house. It becomes a **proposal**, with the agent's note and evidence, and counts in no weight, rank or share until a person confirms it. The person confirms on the page (Input tab, Proposals; the cell shows a `?` in the House until then) or, when they have said so in the conversation, the agent calls `proposal_confirm` with the person's name. The server refuses a confirmation signed by the agent itself.
 
-Confirmed values carry **provenance**: who proposed, who confirmed, when, the note and the evidence. Values a person sets on the page carry the page author's name. Importance, today and goal set through `need_set` carry `by`, the stakeholder who gave the number. `house_get provenance` returns all of it; the Markdown report lists it.
+Confirmed values carry **provenance**: who proposed, who confirmed, when, the note and the evidence. Values a person sets on the page carry the page author's name. Importance, today and goal set through `need_set` carry `by`, the stakeholder who gave the number. A proposed need confirmed without them gets the defaults (3, 1, 5) and the confirmation says so: go back to the stakeholder and set them with `need_set`. `house_get provenance` returns all of it; the Markdown report lists it.
 
 Every accepted change appends one line to the **change log**: time, actor, operation, summary, revision. `house_log` reads it; with `--file` it is also on disk as `house.log.jsonl`, append-only. The house's `revision` counts accepted changes, so two parties can tell whether they hold the same version.
 

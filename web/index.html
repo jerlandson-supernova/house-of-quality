@@ -1157,7 +1157,7 @@ document.getElementById('view-input').addEventListener('change',e=>{
   renderInput();afterListEdit();
 });
 document.getElementById('view-input').addEventListener('click',e=>{
-  const pc=e.target.closest('[data-confirm]');if(pc){const r=H.confirmProposal(HOUSE,pc.dataset.confirm,whoami());if(r.error){toast(r.error);return;}save();setLists();build();update();renderInput();toast('Confirmed: '+H.describeProposal(r.applied));return;}
+  const pc=e.target.closest('[data-confirm]');if(pc){const r=H.confirmProposal(HOUSE,pc.dataset.confirm,whoami());if(r.error){toast(r.error);return;}reindex();setLists();build();update();fillAdd();renderHeader();renderInput();save();toast('Confirmed: '+H.describeProposal(r.applied)+(r.added?' (added as '+r.added.id+')':'')+(r.warning?' · '+r.warning:''));return;}
   const pr=e.target.closest('[data-reject]');if(pr){const r=H.rejectProposal(HOUSE,pr.dataset.reject);if(r.error){toast(r.error);return;}save();update();renderInput();toast('Rejected '+pr.dataset.reject);return;}
   const b=e.target.closest('[data-del]');if(!b)return;const i=+b.dataset.i;
   if(b.dataset.del==='need'){const w=HOUSE.needs[i];if(!confirm('Remove '+w.id+' and its row of relationships?'))return;HOUSE.needs.splice(i,1);delete HOUSE.relationships[w.id];}

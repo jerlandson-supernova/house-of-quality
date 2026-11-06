@@ -159,13 +159,14 @@ Write down what the stakeholders need, each with its source and an importance fr
 
 ```
 web/            index.html (the page), hoq-core.js (the formulas and the drawing), sample-house.js (the sample, loaded by the page), embed.html (HOQ.draw example)
-mcp/            server.js (the MCP server), test-client.js (its test)
-tools/          hoq.js (command line), make_xlsx.py (workbook)
+mcp/            server.js (the MCP server), assist.js (the optional model assist), test-client.js (its test), live-check.js (one real assist call, by hand)
+tools/          hoq.js (command line), skills.js (the skills installer), make_xlsx.py (workbook), test-core.js and test-skills.js (checks)
+skills/         hoq/SKILL.md (the agent skill; `tools/hoq.js skills` installs it)
 examples/       sample-house.json and the same house as five CSV files
 docs/           method, formulas, data format, diagonalization, agent (the MCP tools and the rules for an agent)
 ```
 
-The page, the CLI, the drawing and the workbook need nothing installed beyond node (and python with openpyxl for the workbook). Only the MCP server has dependencies: `npm install` fetches the MCP SDK.
+The page, the CLI, the drawing and the workbook need nothing installed beyond node (and python with openpyxl for the workbook). Only the MCP server has dependencies: `npm install` fetches the MCP SDK, zod and the Anthropic SDK (used only with `--assist`).
 
 `web/sample-house.js` is generated from `examples/sample-house.json` with `node tools/hoq.js sample-js examples/sample-house.json web/sample-house.js`.
 

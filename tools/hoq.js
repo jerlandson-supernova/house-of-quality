@@ -105,13 +105,15 @@ if (cmd === 'skills') {
   const val = (flag) => { const i = args.indexOf(flag); if (i >= 0 && args[i + 1] && !args[i + 1].startsWith('--')) return args[i + 1]; const f = args.find(x => x.startsWith(flag + '=')); return f ? f.slice(flag.length + 1) : ''; };
   const targetArg = val('--target') || 'all';
   const opts = { targets: targetArg === 'all' ? 'all' : targetArg.split(','), dir: val('--project') || '.', scope: flags.includes('--user') ? 'user' : 'project', force: flags.includes('--force'), dryRun: flags.includes('--dry-run'), skill: fs.readFileSync(path.join(__dirname, '..', 'skills', 'hoq', 'SKILL.md'), 'utf8'), log: m => console.log(m) };
+  try {
   if (sub === 'install') {
     const r = S.install(opts);
-    console.log(`${r.written.length} written, ${r.kept.length} kept, ${r.skipped.length} skipped · manifest ${r.manifest}`);
+    console.log(`${r.written.length} ${opts.dryRun ? 'would be written' : 'written'}, ${r.kept.length} kept, ${r.skipped.length} skipped · manifest ${r.manifest}`);
     console.log('Register the server too:  claude mcp add hoq -- node ' + path.join(__dirname, '..', 'mcp', 'server.js') + ' --file ./house.json');
-  } else if (sub === 'uninstall') { const r = S.uninstall(opts); console.log(`${r.removed.length} removed, ${r.kept.length} kept`); }
+  } else if (sub === 'uninstall') { const r = S.uninstall(opts); console.log(`${r.removed.length} ${opts.dryRun ? 'would be removed' : 'removed'}, ${r.kept.length} kept`); }
   else if (sub === 'list') { const r = S.list(opts); console.log(r.entries.length ? r.entries.map(e => `${e.state.padEnd(7)} ${e.target.padEnd(10)} ${e.file}${e.kind === 'section' ? ' (section)' : ''}`).join('\n') + '\nmanifest ' + r.manifest : 'Nothing installed (' + r.manifest + ' absent). Targets: ' + S.TARGETS.join(', ') + ', all.'); }
   else { console.error('skills: install, uninstall or list; --target claude|codex|cursor|copilot|gemini|agents-md|all; --project DIR or --user; --force; --dry-run'); process.exit(1); }
+  } catch (e) { console.error('skills: ' + e.message); process.exit(1); }
 }
 if (cmd === 'diag') {
   const { house } = loadHouse(a1);

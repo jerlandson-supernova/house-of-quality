@@ -116,6 +116,11 @@ async function session(extraArgs, file) {
   const cf = await call('proposal_confirm', { id: needProp.id, confirmedBy: 'John' });
   must(cf.startsWith('Confirmed'), 'confirm a proposed need');
   const needs3 = JSON.parse(await call('house_get', { part: 'needs' })); must(needs3.length === 5, 'confirmed need was added: ' + needs3.length);
+  must(cf.includes('(added as W') && cf.includes('Warning:') && cf.includes('importance'), 'confirm names the new id and flags the defaulted scores: ' + cf.slice(0, 220));
+  const pn = await call('propose', { kind: 'characteristic', value: 'Lid opening force', fields: { unit: 'N', direction: 'down' }, note: 'from the notes' });
+  must(pn.startsWith('Proposed') && pn.includes('new characteristic: Lid opening force (N)'), 'propose a whole characteristic through the tool: ' + pn.slice(0, 120));
+  const empty = await call('assist_suggest', { cells: [{ need: 'W1', characteristic: 'H1' }] });
+  must(empty.includes('Nothing was recorded') && empty.includes('1 cell skipped'), 'assist_suggest on a set cell records nothing: ' + empty.slice(0, 160));
   await client.close();
   console.log('assist (mock) ok');
   console.log('ALL OK');

@@ -353,24 +353,30 @@ const nextFreeId = (house, prefix) => { let n = (prefix === 'W' ? house.needs : 
 function confirmProposal(house, id, confirmedBy) {
   const i = (house.proposals || []).findIndex(x => x.id === id); if (i < 0) return { error: 'No proposal ' + id };
   const q = house.proposals[i];
+  const out = { applied: q };
+  let a = q.need, b = null;
   if (q.kind === 'need' || q.kind === 'characteristic') {
+    // A whole row or column: the fields are normalized like a loaded file. The text may have arrived as `value` alone.
     const f = Object.assign({}, q.fields || {}); if (!f.id) f.id = nextFreeId(house, q.kind === 'need' ? 'W' : 'H');
+    if (q.kind === 'need' && !str(f.need)) f.need = q.value; if (q.kind === 'characteristic' && !str(f.name)) f.name = q.value;
     const tmp = normalize({ needs: q.kind === 'need' ? [f] : [{ id: 'W1', need: 'x' }], characteristics: q.kind === 'characteristic' ? [f] : [{ id: 'H1', name: 'x' }] }).house;
     const row = q.kind === 'need' ? tmp.needs[0] : tmp.characteristics[0];
-    if (q.kind === 'need') { house.needs.push(row); house.relationships[row.id] = {}; } else house.characteristics.push(row);
-    setProvenance(house, q.kind, row.id, null, q.value, { by: q.by, confirmedBy: confirmedBy, note: q.note, evidence: q.evidence });
-    const target = targetOf(house, q); house.proposals = house.proposals.filter(x => x.id !== id && targetOf(house, x) !== target);
-    return { applied: q, dropped: [], added: row };
+    if (q.kind === 'need') {
+      house.needs.push(row); house.relationships[row.id] = {};
+      // Importance, today and goal belong to the stakeholder: a default is a number nobody gave, so the caller is told.
+      const missing = ['importance', 'today', 'goal'].filter(k => f[k] === undefined || f[k] === null || String(f[k]).trim() === '');
+      if (missing.length) out.warning = `${row.id}: ${missing.join(', ')} not given, defaulted to ${missing.map(k => row[k]).join(', ')}; ask the stakeholder and set ${missing.length > 1 ? 'them' : 'it'}, naming who gave ${missing.length > 1 ? 'them' : 'it'}.`;
+    } else house.characteristics.push(row);
+    out.added = row; a = row.id;
   }
-  if (q.kind === 'cell') { house.relationships[q.need] = house.relationships[q.need] || {}; if (q.value) house.relationships[q.need][q.characteristic] = q.value; else delete house.relationships[q.need][q.characteristic]; }
-  else if (q.kind === 'roof') { const k = provKey(house, 'roof', q.a, q.b).slice(5); if (q.value) house.roof[k] = q.value; else delete house.roof[k]; }
+  else if (q.kind === 'cell') { house.relationships[q.need] = house.relationships[q.need] || {}; if (q.value) house.relationships[q.need][q.characteristic] = q.value; else delete house.relationships[q.need][q.characteristic]; b = q.characteristic; }
+  else if (q.kind === 'roof') { const k = provKey(house, 'roof', q.a, q.b).slice(5); if (q.value) house.roof[k] = q.value; else delete house.roof[k]; a = q.a; b = q.b; }
   else { const w = house.needs.find(x => x.id === q.need); w[q.kind] = q.value; }
-  const [kind, a, b] = q.kind === 'cell' ? ['cell', q.need, q.characteristic] : q.kind === 'roof' ? ['roof', q.a, q.b] : [q.kind, q.need, null];
-  setProvenance(house, kind, a, b, q.value, { by: q.by, confirmedBy: confirmedBy, note: q.note, evidence: q.evidence });
+  setProvenance(house, q.kind, a, b, q.value, { by: q.by, confirmedBy: confirmedBy, note: q.note, evidence: q.evidence });
   const target = targetOf(house, q);
-  const dropped = house.proposals.filter(x => x.id !== id && targetOf(house, x) === target).map(x => x.id);
+  out.dropped = house.proposals.filter(x => x.id !== id && targetOf(house, x) === target).map(x => x.id);
   house.proposals = house.proposals.filter(x => x.id !== id && targetOf(house, x) !== target);
-  return { applied: q, dropped };
+  return out;
 }
 function rejectProposal(house, id) {
   const i = (house.proposals || []).findIndex(x => x.id === id); if (i < 0) return { error: 'No proposal ' + id };
@@ -665,5 +671,5 @@ function blocks(P,k,total){
 return { REL_VALUES, ROOF_VALUES, DIRS, SYM, WORD, ROOF_WORD, DEFAULT_STATUS_SCALE, TESTED_CLASSES, CSV_HEADERS,
   blank, normalize, compute, rankText, relMatrix, linksOf, itemShares, progress, reallyDone, toTSV,
   parseCSV, toCSVText, classifyCSV, fromCSV, toCSV, report, diagonalize, blocks, spectral, fmt1, pct,
-  toSVG, draw, reduceLists, PROPOSAL_KINDS, provKey, setProvenance, propose, confirmProposal, rejectProposal, describeProposal, nextCells, toMarkdown };
+  toSVG, draw, reduceLists, PROPOSAL_KINDS, provKey, setProvenance, propose, confirmProposal, rejectProposal, describeProposal, nextFreeId, nextCells, toMarkdown };
 });
