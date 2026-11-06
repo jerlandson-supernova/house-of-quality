@@ -6,6 +6,24 @@ It was built to run a real product review: sixteen stakeholder needs against twe
 
 **Open `web/index.html` in a browser. Nothing to install.** The sample loads on first visit; the Input tab loads yours.
 
+## Screenshots
+
+The House: roof, room, right wall and basement, with the top five and the gates in the strip above it. Click any cell, dot or diamond.
+
+![The House tab](docs/images/house.jpg)
+
+The Diagonal view: the same room reordered so the relationships gather along the diagonal; the blocks are the modules, the dashed cells the couplings, and the tiles give the coupling verdict.
+
+![The Diagonal tab](docs/images/diagonal.jpg)
+
+Work items: each item's share of the house, its board status, due date and effort, and your own test verdict read against the status.
+
+![The Work items tab](docs/images/items.jpg)
+
+The Input tab: load the sample, open or drop JSON or CSV files, paste JSON, edit the lists in place, download JSON, CSV or the dated TSV.
+
+![The Input tab](docs/images/input.jpg)
+
 ## What you get
 
 | Part | Where | What it does |
