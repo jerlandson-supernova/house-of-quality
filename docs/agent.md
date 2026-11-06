@@ -31,6 +31,8 @@ With `--assist` the server gains `assist_status`, `assist_suggest` and `assist_m
 
 Use it the way you would use a junior colleague's first pass: ask for suggestions on the structural gaps, read the reasons out to the person, and let them confirm. Do not run it over every empty cell; most cells of a good house stay blank.
 
+`node mcp/live-check.js` runs one real call against the API (four cells of the sample house, about 2,200 tokens, a couple of cents at Opus 5.5 rates) and prints the proposals, the reasons, the usage and a check that the room did not change. It is not part of `npm test`, which uses the mock provider.
+
 ## Installing the skill for other clients
 
 `node tools/hoq.js skills install --target all --project .` writes the skill for Claude Code (`.claude/skills/hoq/SKILL.md`), Codex (`.agents/skills/hoq/SKILL.md`), Cursor (`.cursor/rules/hoq.mdc`), Copilot (`.github/instructions/hoq.instructions.md`), Gemini (a marked section in `GEMINI.md`) and any `AGENTS.md` reader (a marked section). `--user` installs the Claude, Codex and Gemini ones under your home directory for every project; the others are per project. `.hoq-skills.json` records what was written with hashes: a file you edited is never overwritten without `--force`, `uninstall` removes only what still matches, and `--dry-run` shows the plan.
