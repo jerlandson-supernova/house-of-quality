@@ -1,0 +1,11 @@
+id,name,short,unit,direction,target,target_short,today,today_short,links,difficulty,gate
+H1,Temperature after two hours at 20 °C room temperature,Temperature after 2 h,°C,↑,≥ 70 °C from a 90 °C fill,≥ 70 °C,61 °C on the prototype,61 °C,MUG-1,4,
+H2,Vacuum wall thickness,Wall thickness,mm,◎,"Double wall, 1.5 mm each, vacuum between",1.5 mm,1.2 mm,1.2 mm,"MUG-1, MUG-2",3,
+H3,"Leak test: pressure held with the lid closed, mug on its side",Leak test pressure,kPa,↑,≥ 30 kPa for 10 minutes,≥ 30 kPa,Fails at 12 kPa,12 kPa,MUG-3,3,yes
+H4,Base diameter,Base diameter,mm,◎,≤ 72 mm,≤ 72 mm,74 mm,74 mm,MUG-4,1,
+H5,Force to open the lid with a thumb,Lid opening force,N,↓,"≤ 8 N, and closes with a click",≤ 8 N,"14 N, two hands",14 N,MUG-5,3,
+H6,Outer surface temperature with a 90 °C fill,Outer surface temp.,°C,↓,≤ 40 °C,≤ 40 °C,43 °C,43 °C,MUG-2,2,yes
+H7,Parts the user takes apart to clean,Parts to clean,count,↓,"≤ 3, all dishwasher safe",≤ 3,"5, lid not dishwasher safe",5,MUG-6,2,
+H8,Drops from 1.2 m onto concrete survived without a leak,Drops survived,count of 5,↑,5 of 5,5 of 5,3 of 5,3 of 5,MUG-7,3,
+H9,"Unit cost at 10,000 units",Unit cost,$,↓,≤ $9.50,≤ $9.50,$10.80,$10.80,MUG-8,4,
+H10,Weight when empty,Empty weight,g,↓,≤ 320 g,≤ 320 g,345 g,345 g,MUG-2,2,

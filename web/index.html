@@ -1,0 +1,1163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>House of Quality</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a spreadsheet-like house that scrolls sideways inside a calm page; the roof is an SVG aligned to the grid's columns. */
+:root{
+  --bg:#f2f4f6; --surface:#ffffff; --surface-2:#e8ecf0; --surface-3:#dde3e9;
+  --fg:#15212b; --muted:#5b6977; --line:#cbd3db; --line-2:#e1e6eb;
+  --accent:#0c6a5b; --accent-fg:#ffffff; --accent-soft:#d6efe7;
+  --rel1:#cde2fb; --rel3:#6da7ec; --rel9:#1c5cab; --rel1-fg:#0b2a4d; --rel3-fg:#06213f; --rel9-fg:#ffffff;
+  --roof-pp:#199e70; --roof-p:#b3e6d1; --roof-n:#f8cdb8; --roof-nn:#d95926; --roof-pp-fg:#ffffff; --roof-p-fg:#0b3b2a; --roof-n-fg:#4a2410; --roof-nn-fg:#ffffff;
+  --bar:#2a78d6; --bar-top:#1c5cab;
+  --good:#0ca30c; --crit:#d03b3b; --gate:#b42318; --gate-fg:#ffffff; --warn:#b45309;
+  --f-display:'Archivo',system-ui,sans-serif;
+  --f-body:'Source Sans 3',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --cw:36px; --w-id:34px; --w-need:250px; --w-src:96px; --w-imp:96px; --w-cg:132px; --w-ratio:50px; --w-adj:52px; --w-link:128px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111518; --surface:#191f24; --surface-2:#222a31; --surface-3:#2b353d;
+    --fg:#e7ecf0; --muted:#9aa8b3; --line:#38444e; --line-2:#2a343c;
+    --accent:#3cc19a; --accent-fg:#0a1f19; --accent-soft:#17382f; --gate:#f08a7a; --gate-fg:#2a0b07; --warn:#f5b041;
+    --rel1:#184f95; --rel3:#3987e5; --rel9:#9ec5f4; --rel1-fg:#e7ecf0; --rel3-fg:#ffffff; --rel9-fg:#0b2a4d;
+    --roof-pp:#1baf7a; --roof-p:#1f5a47; --roof-n:#6b3a22; --roof-nn:#eb6834; --roof-pp-fg:#06201a; --roof-p-fg:#d9f3e8; --roof-n-fg:#fbe0d1; --roof-nn-fg:#2a1206;
+    --bar:#3987e5; --bar-top:#86b6ef;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111518; --surface:#191f24; --surface-2:#222a31; --surface-3:#2b353d;
+  --fg:#e7ecf0; --muted:#9aa8b3; --line:#38444e; --line-2:#2a343c;
+  --accent:#3cc19a; --accent-fg:#0a1f19; --accent-soft:#17382f; --gate:#f08a7a; --gate-fg:#2a0b07; --warn:#f5b041;
+  --rel1:#184f95; --rel3:#3987e5; --rel9:#9ec5f4; --rel1-fg:#e7ecf0; --rel3-fg:#ffffff; --rel9-fg:#0b2a4d;
+  --roof-pp:#1baf7a; --roof-p:#1f5a47; --roof-n:#6b3a22; --roof-nn:#eb6834; --roof-pp-fg:#06201a; --roof-p-fg:#d9f3e8; --roof-n-fg:#fbe0d1; --roof-nn-fg:#2a1206;
+  --bar:#3987e5; --bar-top:#86b6ef;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body);padding:0 16px 56px}
+.wrap{width:100%;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:flex-end;justify-content:space-between;padding-block:28px 14px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.top h1{font-size:clamp(26px,3.4vw,38px);font-weight:700;letter-spacing:-.01em;line-height:1.1}
+.lede{max-width:68ch;margin:8px 0 0;color:var(--muted)}
+.tabs{display:flex;flex-wrap:wrap;gap:4px}
+.tab{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:13.5px;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.view{padding-top:18px}
+
+/* toolbar */
+.bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:14px}
+.seg{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.seg .opts{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.seg .opts button{border:0;background:transparent;padding:5px 10px;cursor:pointer;font-size:13px;color:var(--muted)}
+.seg .opts button+button{border-left:1px solid var(--line)}
+.seg .opts button[aria-pressed="true"]{background:var(--accent-soft);color:var(--fg);font-weight:600}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:5px 12px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:var(--accent)}
+.btn.warn{border-color:var(--crit);color:var(--crit)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.spacer{flex:1}
+.edits{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+
+/* summary strip */
+.strip{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px;font-size:13px}
+.strip .lbl{color:var(--muted);margin-right:4px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 10px 3px 6px;cursor:pointer;font-size:12.5px}
+.chip b{font-family:var(--f-mono);font-weight:500;background:var(--rel9);color:var(--rel9-fg);border-radius:999px;padding:0 6px;font-size:11px}
+.chip:hover{border-color:var(--accent)}
+.chip .w{font-family:var(--f-mono);color:var(--muted)}
+.chip.gate b{background:var(--gate);color:var(--gate-fg)}
+.strip .lbl.gl{margin-left:10px}
+
+/* house */
+.house{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px}
+.house-in{display:inline-block;min-width:100%}
+.roof{display:block;position:relative}
+.roof svg{display:block}
+.rf polygon{stroke:var(--line);stroke-width:1;fill:var(--surface)}
+.rf text{font:11px var(--f-mono);text-anchor:middle;dominant-baseline:central;fill:var(--muted);pointer-events:none}
+.rf{cursor:pointer}
+.rf:hover polygon{stroke:var(--accent);stroke-width:1.5}
+.rf.v-pp polygon{fill:var(--roof-pp)} .rf.v-pp text{fill:var(--roof-pp-fg);font-weight:500}
+.rf.v-p polygon{fill:var(--roof-p)} .rf.v-p text{fill:var(--roof-p-fg)}
+.rf.v-n polygon{fill:var(--roof-n)} .rf.v-n text{fill:var(--roof-n-fg)}
+.rf.v-nn polygon{fill:var(--roof-nn)} .rf.v-nn text{fill:var(--roof-nn-fg);font-weight:500}
+.rf.sel polygon{stroke:var(--fg);stroke-width:1.5}
+.roof-title{font-family:var(--f-mono);font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;line-height:1.4;padding:0 0 6px}
+
+.grid{position:relative;display:grid;gap:1px;background:var(--line-2);border:1px solid var(--line-2);font-size:12px}
+.c{background:var(--surface);min-width:0;display:flex;align-items:center;padding:0 6px;min-height:30px;border:0;text-align:left}
+.c.k0,.c.k1,.c.span4{position:sticky;z-index:2}
+.c.k0,.c.span4{left:0}
+.c.k1{left:calc(var(--w-id) + 1px)}
+.c.span4{grid-column:1 / span 4}
+.c.rspan{grid-column:span 4}
+.c.k2{overflow:hidden}
+.c.lbl{flex-direction:column;align-items:flex-start;justify-content:center}
+.c.hd{font-family:var(--f-display);font-weight:600;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;align-items:flex-end;padding-bottom:6px;line-height:1.25}
+.c.tiny{font-size:11px;color:var(--muted)}
+.c.hc{justify-content:center;padding:0 2px;text-align:center}
+.c.hc.hl,.c.lw.hl,.c.rw.hl{background:var(--surface-2)}
+.c.hc.sel,.c.lw.sel{background:var(--accent-soft)}
+.r-dir{min-height:24px}
+.dir{font-size:14px;color:var(--muted)}
+.hid{font-family:var(--f-mono);font-size:11px;color:var(--muted);cursor:pointer;min-height:22px}
+.hid:hover{color:var(--fg)}
+.r-name{min-height:212px}
+.hname{align-items:flex-end;cursor:pointer;padding-bottom:6px}
+.hname .vt{writing-mode:vertical-rl;transform:rotate(180deg);display:block;height:200px;text-align:left;line-height:1.25}
+.hname b,.hname i{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hname b{font-weight:600;font-size:12px;color:var(--fg)}
+.hname i{font-style:normal;font-size:10.5px;color:var(--muted)}
+.hname:hover b{color:var(--accent)}
+.hname.gated{box-shadow:inset 0 3px 0 var(--gate)}
+.hname.gated b{color:var(--gate)}
+.wid{font-family:var(--f-mono);font-size:11px;color:var(--muted);justify-content:center;padding:0}
+.need{cursor:pointer;line-height:1.25;padding-block:4px}
+.need span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.need:hover span{color:var(--accent)}
+.src{font-size:11px;color:var(--muted);line-height:1.2}
+.src span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.r-what{min-height:38px}
+.imp{display:flex;align-items:center;gap:3px}
+.imp .dot{width:12px;height:12px;border-radius:50%;border:1.5px solid var(--muted);background:transparent;padding:0;cursor:pointer}
+.imp .dot.on{background:var(--accent);border-color:var(--accent)}
+.imp .dot:hover{border-color:var(--fg)}
+.imp .num{font-family:var(--f-mono);font-size:11.5px;margin-left:4px;min-width:1ch}
+.cell{width:100%;height:100%;border:0;background:var(--surface);cursor:pointer;font-family:var(--f-mono);font-size:12px;padding:0;min-height:38px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.cell[data-v="0"].hl{background:var(--surface-2)}
+.cell[data-v="1"]{background:var(--rel1);color:var(--rel1-fg)}
+.cell[data-v="3"]{background:var(--rel3);color:var(--rel3-fg)}
+.cell[data-v="9"]{background:var(--rel9);color:var(--rel9-fg);font-weight:500}
+.cell:hover{box-shadow:inset 0 0 0 2px var(--accent)}
+.cell.sym{font-size:13px}
+.cg{display:grid;grid-template-columns:28px 1fr 28px;gap:5px;align-items:center;width:100%}
+.n{width:28px;height:22px;border:1px solid var(--line);border-radius:4px;background:var(--surface);font:11.5px var(--f-mono);text-align:center;padding:0;color:var(--fg)}
+.n::-webkit-inner-spin-button,.n::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.n{-moz-appearance:textfield;appearance:textfield}
+.track{position:relative;height:14px}
+.track::before{content:"";position:absolute;left:0;right:0;top:6px;height:2px;background:var(--line);border-radius:1px}
+.track .segm{position:absolute;top:5px;height:4px;background:var(--accent);opacity:.55;border-radius:2px}
+.track .m{position:absolute;top:2px;width:10px;height:10px;border-radius:50%;margin-left:-5px;border:2px solid var(--accent);background:var(--surface)}
+.track .m.goal{background:var(--accent)}
+.mono{font-family:var(--f-mono);font-size:11.5px}
+.rw.mono{justify-content:flex-end}
+.link{font-size:10.5px;color:var(--muted);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;padding-top:9px}
+.r-txt{min-height:112px}
+.vtx{align-items:flex-end;justify-content:center;padding:0 2px 6px}
+.vtx span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10.5px;line-height:1.2;max-height:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.wt{position:relative;justify-content:center;padding:0;font-family:var(--f-mono);font-size:11.5px;min-height:30px}
+.wt .fill{position:absolute;left:0;bottom:0;top:0;background:var(--rel1);opacity:.75;z-index:0}
+.wt .v{position:relative;z-index:1}
+.wt.top .fill{background:var(--rel3)}
+.rank{justify-content:center;padding:0}
+.rank .pill{font-family:var(--f-mono);font-size:11px;border-radius:999px;padding:1px 7px;border:1px solid var(--line);color:var(--muted)}
+.rank .pill.top{background:var(--rel9);color:var(--rel9-fg);border-color:var(--rel9)}
+.rank .pill.gate{color:var(--gate);border-color:var(--gate);font-weight:600;letter-spacing:.03em}
+.gate{justify-content:center;padding:0;min-height:30px}
+.gate .gpill{font:600 10px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--gate-fg);background:var(--gate);border-radius:999px;padding:4px 7px}
+.dif{justify-content:center;padding:0}
+.dif button{border:1px dashed var(--line);background:transparent;border-radius:4px;width:24px;height:22px;font:11.5px var(--f-mono);cursor:pointer;color:var(--fg)}
+.dif button:hover{border-color:var(--accent)}
+.lw.lbl{font-size:12px;line-height:1.25;padding-block:4px}
+.lw.lbl small{display:block;color:var(--muted);font-size:10.5px}
+.foot-note{font-size:12.5px;color:var(--muted);margin:10px 0 0}
+
+/* detail + charts */
+.below{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;margin-top:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:0}
+.panel h2{font-size:15px;font-weight:600;letter-spacing:.01em;margin-bottom:10px}
+.panel h2 small{font-family:var(--f-body);font-weight:400;color:var(--muted);font-size:12.5px;margin-left:6px}
+.detail .empty{color:var(--muted);font-size:14px}
+.detail .kv{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;font-size:13.5px;margin:10px 0}
+.detail .kv dt{color:var(--muted)}
+.detail .kv dd{margin:0}
+.detail h3{font-size:17px;font-weight:600;line-height:1.3}
+.detail .tag{font-family:var(--f-mono);font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.detail p{margin:8px 0;font-size:14px}
+.detail ul{margin:6px 0 0;padding-left:0;list-style:none;font-size:13px}
+.detail li{display:flex;gap:8px;align-items:baseline;padding:3px 0;border-top:1px solid var(--line-2)}
+.detail li .k{font-family:var(--f-mono);font-size:11px;color:var(--muted);min-width:34px}
+.detail li .v{font-family:var(--f-mono);font-size:11px;margin-left:auto;white-space:nowrap}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+.charts{display:grid;gap:16px}
+.br{display:grid;grid-template-columns:minmax(120px,38%) 1fr auto;gap:10px;align-items:center;font-size:12.5px;padding:3px 0;cursor:pointer;border-radius:4px}
+.br:hover{background:var(--surface-2)}
+.br .bl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.br .bl b{font-family:var(--f-mono);font-weight:500;color:var(--muted);font-size:11px;margin-right:6px}
+.br .bt{height:12px;position:relative;background:transparent}
+.br .bt::before{content:"";position:absolute;inset:5px 0 auto 0;height:1px;background:var(--line-2)}
+.br .bf{position:absolute;left:0;top:0;bottom:0;background:var(--bar);border-radius:0 3px 3px 0;min-width:2px}
+.br .bf.top{background:var(--bar-top)}
+.br .bf.gate{background:var(--gate);opacity:.8}
+.br .bv{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.axis{font-size:11px;color:var(--muted);margin-top:6px}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.tbl-wrap{overflow-x:auto}
+.tbl th,.tbl td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line-2);vertical-align:top}
+.tbl th{font-family:var(--f-display);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--surface-2);font-weight:600}
+.tbl td.m{font-family:var(--f-mono);font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tbl td.why{color:var(--muted);font-size:13px;max-width:52ch}
+.tbl tr:hover td{background:var(--surface-2)}
+.tbl select{font:12.5px var(--f-mono);border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--fg);padding:2px 4px}
+.tbl td .tt{color:var(--muted);font-size:12.5px;display:block}
+.tbl td.sv{white-space:nowrap;font-size:12.5px}.tbl td.sv b{color:var(--gate);font-weight:600}
+.tbl td.due{font-family:var(--f-mono);font-size:12px;white-space:nowrap}.tbl td.due.late{color:var(--gate);font-weight:600}
+.addrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0;font-size:13px}
+.addrow select{font:12.5px var(--f-body);border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--fg);padding:4px 6px;max-width:100%}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.legend .panel p,.legend .panel li{font-size:14px}
+.legend dl{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;margin:8px 0;font-size:14px}
+.legend dt{color:var(--muted)}
+.legend dd{margin:0}
+.key{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:3px;font:12px var(--f-mono);margin-right:6px;vertical-align:middle}
+.key.k9{background:var(--rel9);color:var(--rel9-fg)} .key.k3{background:var(--rel3);color:var(--rel3-fg)} .key.k1{background:var(--rel1);color:var(--rel1-fg)}
+.kpp{background:var(--roof-pp);color:var(--roof-pp-fg)} .kp{background:var(--roof-p);color:var(--roof-p-fg)} .kn{background:var(--roof-n);color:var(--roof-n-fg)} .knn{background:var(--roof-nn);color:var(--roof-nn-fg)}
+
+/* block edges in the House when the diagonal order is applied */
+.c.bL,.cell.bL{box-shadow:inset 2px 0 0 var(--fg)}
+.c.bT,.cell.bT{box-shadow:inset 0 2px 0 var(--fg)}
+.c.bL.bT,.cell.bL.bT{box-shadow:inset 2px 0 0 var(--fg),inset 0 2px 0 var(--fg)}
+.cell.bL:hover,.cell.bT:hover{box-shadow:inset 0 0 0 2px var(--accent)}
+
+/* tiles, diagonal view */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:14px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.tile .tl{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tile .tv{font-family:var(--f-display);font-weight:700;font-size:26px;line-height:1.15;margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.tile .tv small{font-family:var(--f-body);font-weight:400;font-size:13px;color:var(--muted);margin-left:8px;letter-spacing:0}
+.tile .ts{font-size:12.5px;color:var(--muted);margin-top:5px;line-height:1.4}
+.dgwrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px}
+.dg{position:relative;display:grid;--dgl:240px;--dgs:22px;--dgc:32px;--dgh:230px;grid-template-columns:var(--dgl) var(--dgs) repeat(var(--dgn),var(--dgc));width:max-content;margin:0 auto;font-size:12px}
+.dg .sph{height:var(--dgh);border-bottom:1px solid var(--line)}
+.dg .sp{height:var(--dgc);border-bottom:1px solid var(--line-2)}
+.dg .spine{position:absolute;pointer-events:none;background:var(--fg);color:var(--bg);border-radius:3px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.dg .spine span{writing-mode:vertical-rl;transform:rotate(180deg);font:10.5px var(--f-mono);letter-spacing:.04em;white-space:nowrap}
+.bkl{font-size:12.5px;color:var(--muted);margin:10px 0 0;line-height:1.6;text-align:center}
+.bkl b{font-family:var(--f-mono);font-weight:500;color:var(--bg);background:var(--fg);border-radius:3px;padding:0 5px;margin-right:4px;font-size:11px}
+.dg .dh{height:var(--dgh);display:flex;align-items:flex-end;justify-content:center;padding:0 2px 6px;border-bottom:1px solid var(--line);min-width:0}
+.dg .dh.corner{justify-content:flex-start;align-items:flex-end;color:var(--muted);font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;line-height:1.3}
+.dg .dh .vt{writing-mode:vertical-rl;transform:rotate(180deg);font-size:11px;line-height:1.2;max-height:218px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--muted)}
+.dg .dh .vt b{font-family:var(--f-mono);font-weight:500;color:var(--fg);font-size:11px}
+.dg .dl{height:var(--dgc);display:flex;align-items:center;gap:8px;padding-right:10px;border-bottom:1px solid var(--line-2);white-space:nowrap;overflow:hidden;min-width:0}
+.dg .dl b{font-family:var(--f-mono);font-weight:500;color:var(--muted);font-size:11px;min-width:30px}
+.dg .dl span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.dg .dc{height:var(--dgc);display:flex;align-items:center;justify-content:center;font-family:var(--f-mono);font-size:13px;color:var(--muted);border-right:1px solid var(--line-2);border-bottom:1px solid var(--line-2)}
+.dg .dc[data-v="1"]{background:var(--rel1);color:var(--rel1-fg)}
+.dg .dc[data-v="3"]{background:var(--rel3);color:var(--rel3-fg)}
+.dg .dc[data-v="9"]{background:var(--rel9);color:var(--rel9-fg);font-weight:500}
+.dg .dc.out{outline:2px dashed var(--fg);outline-offset:-4px}
+.dg .dc:hover{box-shadow:inset 0 0 0 2px var(--accent)}
+.dg .blk{position:absolute;pointer-events:none;border:2px solid var(--fg);border-radius:2px}
+.dg .dline{position:absolute;pointer-events:none;overflow:visible}
+.dg .dline line{stroke:var(--muted);stroke-width:1.5;stroke-dasharray:5 5;opacity:.6}
+.bk{padding:10px 0;border-top:1px solid var(--line-2)}
+.bk:first-of-type{border-top:0;padding-top:0}
+.bk h3{font-size:14px;font-weight:600;line-height:1.3}
+.bk h3 small{display:block;font-family:var(--f-body);font-weight:400;color:var(--muted);font-size:12.5px;margin-top:2px}
+.bk2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.ls{list-style:none;margin:6px 0 0;padding:0;font-size:13px}
+.ls li{display:flex;gap:8px;align-items:baseline;padding:3px 0;border-top:1px solid var(--line-2)}
+.ls li .k{font-family:var(--f-mono);font-size:11px;color:var(--muted);min-width:30px;flex:none}
+.ls li .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ls li .v{font-family:var(--f-mono);font-size:11px;margin-left:auto;white-space:nowrap;color:var(--muted);flex:none}
+.panel p.h{margin:12px 0 2px;font-size:13.5px}
+.panel p.h:first-of-type{margin-top:0}
+.panel .muted{color:var(--muted);font-size:13px}
+.steps{margin:6px 0 0;padding-left:20px;font-size:14px}
+.steps li{margin:6px 0}
+.steps b{font-weight:600}
+@media (max-width:720px){.dg{--dgl:140px;--dgc:28px;--dgh:210px}.bk2{grid-template-columns:1fr}}
+
+/* items view */
+.stp{display:inline-block;font:11px var(--f-mono);border-radius:999px;padding:1px 8px;border:1px solid var(--line);white-space:nowrap;color:var(--muted);background:var(--surface-2)}
+.stp.p1{background:var(--accent-soft);color:var(--fg);border-color:var(--accent-soft)}.stp.p2{background:var(--rel1);color:var(--rel1-fg);border-color:var(--rel1)}.stp.p3{background:var(--rel3);color:var(--rel3-fg);border-color:var(--rel3)}.stp.p4{background:var(--good);color:#fff;border-color:var(--good)}
+.tp{display:inline-block;font:11px var(--f-mono);border-radius:999px;padding:1px 8px;border:1px solid var(--line);white-space:nowrap;color:var(--muted);background:var(--surface-2)}
+.tp.verified{background:var(--good);color:#fff;border-color:var(--good)}.tp.partial{background:transparent;color:var(--warn);border-color:var(--warn)}.tp.failed{background:var(--gate);color:var(--gate-fg);border-color:var(--gate)}.tp.nr{background:transparent}
+.rd{font-size:12.5px;white-space:nowrap}.rd.ok{color:var(--good);font-weight:600}.rd.bad{color:var(--gate);font-weight:600}.rd.warn{color:var(--warn);font-weight:600}.rd.mute{color:var(--muted)}
+.tk .path{margin:6px 0 0;padding-left:22px;font-size:13.5px}.tk .path li{margin:5px 0;line-height:1.4}.tk .path b{font-family:var(--f-mono);font-weight:500;font-size:12.5px}
+.tk .gt{margin:8px 0 0;padding:0;list-style:none;font-size:13px}.tk .gt li{padding:7px 0;border-top:1px solid var(--line-2);line-height:1.4}.tk .gt li:first-child{border-top:0}.tk .gt b{color:var(--gate)}
+.tk .ev{margin:10px 0 0;padding-left:18px;font-size:13px;color:var(--muted)}.tk .ev li{margin:3px 0}
+
+/* input view */
+.in-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.drop{border:2px dashed var(--line);border-radius:8px;padding:18px;text-align:center;color:var(--muted);font-size:13.5px;margin:10px 0}
+.drop.on{border-color:var(--accent);background:var(--accent-soft)}
+.in-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);padding:8px}
+.msg{font-size:13px;margin:8px 0 0;white-space:pre-wrap}
+.msg.err{color:var(--crit)}.msg.warn{color:var(--warn)}.msg.ok{color:var(--good)}
+.fld{display:grid;grid-template-columns:140px 1fr;gap:6px 10px;align-items:center;font-size:13.5px;margin:6px 0}
+.fld input,.fld select{font:13.5px var(--f-body);border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--fg);padding:4px 6px;width:100%}
+.ed{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.ed th,.ed td{padding:3px 4px;border-bottom:1px solid var(--line-2);vertical-align:top}
+.ed th{font-family:var(--f-display);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--surface-2);text-align:left;white-space:nowrap}
+.ed input,.ed select,.ed textarea{font:12.5px var(--f-body);border:1px solid var(--line-2);border-radius:3px;background:var(--surface);color:var(--fg);padding:3px 4px;width:100%;min-width:0}
+.ed input.n2{width:44px;text-align:center;font-family:var(--f-mono)}
+.ed input.idf{width:64px;font-family:var(--f-mono)}
+.ed textarea{min-height:34px;resize:vertical}
+.ed .del{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px}
+.ed .del:hover{color:var(--crit)}
+.ed-wrap{overflow-x:auto;margin-top:8px}
+.hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--fg);color:var(--bg);font-size:12px;line-height:1.35;padding:6px 9px;border-radius:5px;max-width:300px;box-shadow:0 4px 14px rgba(0,0,0,.18);opacity:0;transition:opacity .08s}
+.tip.on{opacity:1}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;z-index:60;opacity:0;transition:opacity .15s;pointer-events:none}
+.toast.on{opacity:1}
+@media (max-width:900px){.below{grid-template-columns:1fr}}
+@media (max-width:720px){:root{--w-need:150px;--w-src:0px;--w-link:0px}.c.k2,.c.rw.lk{padding:0}.detail .kv{grid-template-columns:90px 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div>
+    <p class="eyebrow" id="hdr-eyebrow">QFD · House of Quality</p>
+    <h1 id="hdr-title">House of Quality</h1>
+    <p class="lede" id="hdr-sub"></p>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Views">
+    <button class="tab" role="tab" data-view="input" aria-selected="false">Input</button>
+    <button class="tab" role="tab" data-view="house" aria-selected="true">House</button>
+    <button class="tab" role="tab" data-view="diag" aria-selected="false">Diagonal</button>
+    <button class="tab" role="tab" data-view="items" aria-selected="false">Work items</button>
+    <button class="tab" role="tab" data-view="needs" aria-selected="false">Needs</button>
+    <button class="tab" role="tab" data-view="hows" aria-selected="false">Characteristics</button>
+    <button class="tab" role="tab" data-view="roof" aria-selected="false">Roof pairs</button>
+    <button class="tab" role="tab" data-view="legend" aria-selected="false">Legend</button>
+  </nav>
+</header>
+
+<section class="view" id="view-input" hidden>
+  <div class="in-grid">
+    <div class="panel">
+      <h2>Load a house</h2>
+      <div class="in-row">
+        <button class="btn primary" id="in-sample">Load the sample</button>
+        <button class="btn" id="in-empty">Start empty</button>
+        <label class="btn">Open files… <input type="file" id="in-file" multiple accept=".json,.csv,.txt" style="display:none"></label>
+      </div>
+      <div class="drop" id="in-drop">Drop a house <b>.json</b> here, or the five CSV files (<b>needs, characteristics, matrix, roof, items</b>). Any subset works: the rest keeps what is loaded.</div>
+      <textarea class="paste" id="in-paste" placeholder='Or paste a house as JSON: {"title":"…","needs":[…],"characteristics":[…],"relationships":{…}}'></textarea>
+      <div class="in-row"><button class="btn" id="in-load-paste">Load the pasted JSON</button><span class="hint">Formats: <a href="../docs/data-format.md">docs/data-format.md</a></span></div>
+      <div class="msg" id="in-msg"></div>
+    </div>
+    <div class="panel">
+      <h2>Save</h2>
+      <p class="hint" style="margin-top:0">Everything you type stays in this browser until you download it. The dated TSV is the file to send around; the JSON is the file to load again.</p>
+      <div class="in-row">
+        <button class="btn primary" id="out-json">Download JSON</button>
+        <button class="btn" id="out-csv">Download the CSV files</button>
+        <button class="btn" id="out-tsv">Download TSV</button>
+        <button class="btn" id="out-copy">Copy TSV</button>
+      </div>
+      <div class="in-row"><button class="btn warn" id="in-reset">Reset to the loaded file</button><span class="edits" id="edits"></span></div>
+      <h2 style="margin-top:16px">Title and notes</h2>
+      <div class="fld"><label for="m-title">Title</label><input id="m-title" data-meta="title"></div>
+      <div class="fld"><label for="m-sub">One line under it</label><input id="m-sub" data-meta="subtitle"></div>
+      <div class="fld"><label for="m-date">Data as of (date)</label><input id="m-date" data-meta="meta.date" placeholder="YYYY-MM-DD"></div>
+      <div class="fld"><label for="m-author">Author</label><input id="m-author" data-meta="meta.author"></div>
+      <div class="fld"><label for="m-today">"Today" means</label><input id="m-today" data-meta="meta.todayLabel" placeholder="e.g. current prototype, staging build"></div>
+      <div class="fld"><label for="m-scale">Status weights</label><input id="m-scale" data-meta="statusScale" placeholder="To Do=0, In Progress=0.35, Done=1"></div>
+      <p class="hint">Status weights score the work items for the progress tile: a status not listed counts as 0.</p>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:16px">
+    <h2>Needs <small>the rows: what the stakeholders need, with a source and an importance from 1 to 5</small></h2>
+    <div class="ed-wrap"><table class="ed" id="ed-needs"></table></div>
+    <div class="in-row"><button class="btn" id="add-need">Add a need</button><span class="hint">Importance, today and goal are 1 to 5. Links name work items (e.g. MUG-3, or "KAN-62 to 68"). The relationships are set by clicking in the House.</span></div>
+  </div>
+  <div class="panel" style="margin-top:16px">
+    <h2>Characteristics <small>the columns: measurable things the design must hit, with a unit, a direction and a target</small></h2>
+    <div class="ed-wrap"><table class="ed" id="ed-hows"></table></div>
+    <div class="in-row"><button class="btn" id="add-how">Add a characteristic</button><span class="hint">Gate: must pass before anything ships; it keeps its weight but is not ranked against the others. Difficulty is 1 to 5.</span></div>
+  </div>
+  <div class="panel" style="margin-top:16px">
+    <h2>Work items <small>optional: the tickets or tasks that the links point at, with a status, due date, effort and your own test verdict</small></h2>
+    <div class="ed-wrap"><table class="ed" id="ed-items"></table></div>
+    <div class="in-row"><button class="btn" id="add-item">Add a work item</button><span class="hint">Tested: verified, partial, failed, not built or not retested. "Really done?" on the Work items tab reads the status against it.</span></div>
+  </div>
+</section>
+
+<section class="view" id="view-house">
+  <div class="bar">
+    <div class="seg">Weight needs by
+      <div class="opts" role="group" aria-label="Weighting">
+        <button id="mode-imp" aria-pressed="true">Importance</button>
+        <button id="mode-gap" aria-pressed="false">Importance × gap</button>
+      </div>
+    </div>
+    <div class="seg">Cells
+      <div class="opts" role="group" aria-label="Cell display">
+        <button id="disp-sym" aria-pressed="true">● ○ △</button>
+        <button id="disp-num" aria-pressed="false">9 3 1</button>
+      </div>
+    </div>
+    <div class="seg">Roof
+      <div class="opts" role="group" aria-label="Roof">
+        <button id="roof-on" aria-pressed="true">Shown</button>
+        <button id="roof-off" aria-pressed="false">Hidden</button>
+      </div>
+    </div>
+    <div class="seg">Order
+      <div class="opts" role="group" aria-label="Row and column order">
+        <button id="ord-orig" aria-pressed="true">As listed</button>
+        <button id="ord-diag" aria-pressed="false">Diagonal</button>
+      </div>
+    </div>
+    <span class="spacer"></span>
+    <button class="btn" id="copy">Copy as TSV</button>
+    <button class="btn" id="to-input">Edit the lists</button>
+  </div>
+  <div class="strip" id="strip"></div>
+  <div class="house">
+    <div class="house-in">
+      <div class="roof" id="roof"></div>
+      <div class="grid" id="grid" aria-label="House of Quality matrix"></div>
+    </div>
+  </div>
+  <p class="foot-note" id="footnote"></p>
+  <div class="below">
+    <aside class="panel detail" id="detail" aria-live="polite"></aside>
+    <div class="charts">
+      <div class="panel">
+        <h2>Which characteristics carry the weight <small id="chart1-sub"></small></h2>
+        <div id="chart1"></div>
+        <p class="axis">Bar length = Σ (need weight × relationship). Darker bars are the top five ranked characteristics; red bars are gates.</p>
+      </div>
+      <div class="panel">
+        <h2>Where the gap is widest <small>importance × (goal ÷ today)</small></h2>
+        <div id="chart2"></div>
+        <p class="axis">Needs with the most ground to cover between today's score and the goal.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="view-diag" hidden>
+  <div class="bar">
+    <div class="seg">Order by
+      <div class="opts" role="group" aria-label="Relationships used for the order">
+        <button id="dg-all" aria-pressed="true">All relationships</button>
+        <button id="dg-strong" aria-pressed="false">● strong only</button>
+      </div>
+    </div>
+    <div class="seg">Blocks
+      <div class="opts" role="group" aria-label="Number of blocks" id="dg-k">
+        <button data-k="0" aria-pressed="true">Auto</button><button data-k="2" aria-pressed="false">2</button><button data-k="3" aria-pressed="false">3</button><button data-k="4" aria-pressed="false">4</button><button data-k="5" aria-pressed="false">5</button><button data-k="6" aria-pressed="false">6</button><button data-k="7" aria-pressed="false">7</button><button data-k="8" aria-pressed="false">8</button>
+      </div>
+    </div>
+    <span class="spacer"></span>
+    <button class="btn" id="dg-apply">Show the House in this order</button>
+  </div>
+  <div class="tiles" id="dg-tiles"></div>
+  <div class="dgwrap"><div class="dg" id="dgm" role="img" aria-label="The room with rows and columns in diagonal order"></div><p class="bkl" id="dg-bkl"></p></div>
+  <p class="foot-note">Same room, same ratings; only the order of the rows and columns has changed. Outlined blocks are the modules, the dashed line is the diagonal, and a dashed ring marks a relationship that sits outside its block. Hover a cell for the pair. Edit ratings in the House and this view recomputes.</p>
+  <div class="below">
+    <div class="panel" id="dg-blocks"></div>
+    <div class="panel" id="dg-couplers"></div>
+  </div>
+  <div class="legend" style="margin-top:16px">
+    <div class="panel">
+      <h2>First principles</h2>
+      <p>The room is a matrix: <span id="dg-n">n</span> needs by <span id="dg-m">m</span> characteristics, each cell 9, 3, 1 or blank. The order of the rows and the columns carries no information. Shuffle them and every weight, rank and roof pair stays the same; what changes is what the eye can see. Diagonalising means choosing a row order and a column order so that each need sits beside the characteristics that chiefly serve it, and the relationships gather along the line from the top-left corner to the bottom-right. Three things then show that the listed order hides:</p>
+      <ul class="steps">
+        <li><b>Blocks.</b> Groups of needs served by the same group of characteristics, with little outside the group: the natural modules of the design, and candidate owners.</li>
+        <li><b>Couplings.</b> Relationships that no ordering brings to the diagonal: a characteristic that serves needs in several blocks, or a need that depends on several blocks. These are where one team's change moves another team's result.</li>
+        <li><b>Shape.</b> Axiomatic Design (Suh 1990) reads a design matrix by its shape. Diagonal is <i>uncoupled</i>: each need has its own characteristic. Triangular is <i>decoupled</i>: there is an order in which to settle the characteristics so that each need is met once and not revisited. Anything else is <i>coupled</i>, and the design iterates. <span id="dg-shape"></span></li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h2>The method, step by step</h2>
+      <ol class="steps">
+        <li><b>Positions.</b> Row <i>i</i> gets p<sub>i</sub> = its position ÷ (n − 1) and column <i>j</i> gets q<sub>j</sub> = its position ÷ (m − 1), so the rectangular matrix has a diagonal from corner to corner. The cost of an order is J = Σ r<sub>ij</sub> (p<sub>i</sub> − q<sub>j</sub>)², the weighted squared distance of the relationships from that diagonal.</li>
+        <li><b>Spectral order.</b> Minimising J over all orders is NP-hard (it is seriation). Let the positions be real numbers instead and the minimiser is the second eigenvector of the Laplacian of the bipartite graph that has a node per need, a node per characteristic and an edge of weight r<sub>ij</sub> between them: the Fiedler vector (Atkins, Boman and Hendrickson 1998), equivalently the second singular vectors of the degree-normalised matrix (Dhillon 2001). Sorting rows and columns by their coordinates gives the spectral order. Parts of the house that share no relationship are ordered separately, largest first; empty rows and columns go last.</li>
+        <li><b>Local search.</b> From the spectral order, move one row or one column at a time to the position that lowers J most, until no move helps; the same idea as the bond-energy algorithm (McCormick, Schweitzer and White 1972) and King's rank-order clustering (1980), with J as the score.</li>
+        <li><b>Blocks.</b> Cut the ordered rows and columns into k diagonal blocks to maximise bipartite modularity (Barber 2007): the mass inside the blocks beyond what the row and column totals would put there by chance. Dynamic programming makes the cut exact for the order; k is the number of blocks with the highest Q unless you fix it above.</li>
+        <li><b>Coupling.</b> Count the relationships that fall outside their block. None: uncoupled. All on one side of the diagonal: decoupled, and the side says which blocks to settle first. Both sides: coupled, and the smaller side is the set of ties to design away or to accept as iteration (Benavides and Rodríguez 2011, after Suh's own reorganisation algorithm). The ● level and the full 9/3/1 level are read separately, because QFD practice treats the strong relationships as the structure and the weaker ones as influence.</li>
+      </ol>
+    </div>
+    <div class="panel">
+      <h2>How to read it, and the caveats</h2>
+      <ul class="steps">
+        <li>A block is a candidate module and a candidate owner: its needs are met by its characteristics. Whether the blocks follow your team structure, or cut across it, is itself a finding.</li>
+        <li>A characteristic with much of its weight outside its block is platform-level: change it and several blocks move. The priority rank alone does not show this.</li>
+        <li>A need spread across blocks has no single home. Ask whether it is really two needs, or whether a characteristic is missing.</li>
+        <li>A perfect diagonal is not the goal of a QFD room. If every need had exactly one characteristic, the characteristics would be the needs restated in units and the house would have found nothing. Diagonalising is for seeing structure, not for scoring it.</li>
+        <li>The order is a mathematical result of the ratings. Change a rating and the order can change: this view recomputes live, while the House keeps the order you applied until you apply it again.</li>
+        <li>A roof trade-off (− or −−) inside a block is a design decision for that block's owner; across blocks it is a negotiation between owners.</li>
+        <li>For square matrices, Rinderle's reangularity and semangularity (1982) score coupling as angles between the columns; they do not apply to a rectangular room, so the measures here are the share of weight inside the blocks and the mean distance from the diagonal.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h2>Sources</h2>
+      <ul class="steps">
+        <li>Hauser, J. R. and Clausing, D., <a href="https://hbr.org/1988/05/the-house-of-quality" target="_blank" rel="noopener">The House of Quality</a>, Harvard Business Review 66(3), 63–73, 1988: the room, the roof and how to read empty rows and columns.</li>
+        <li>Suh, N. P., <i>The Principles of Design</i>, Oxford, 1990: the independence axiom; uncoupled, decoupled and coupled design matrices. Summarised with the reorganisation algorithm in Benavides, E. M. and Rodríguez, L. G., <a href="https://www.axiomaticdesign.com/wp-content/uploads/icad-2011-paper3-benavides-and-rodriguez.pdf" target="_blank" rel="noopener">Extended algorithm for design-matrix reorganization</a>, ICAD 2011.</li>
+        <li>Atkins, J. E., Boman, E. G. and Hendrickson, B., <a href="https://doi.org/10.1137/S0097539795285771" target="_blank" rel="noopener">A spectral algorithm for seriation and the consecutive ones problem</a>, SIAM J. Comput. 28(1), 297–310, 1998.</li>
+        <li>Dhillon, I. S., <a href="https://doi.org/10.1145/502512.502550" target="_blank" rel="noopener">Co-clustering documents and words using bipartite spectral graph partitioning</a>, KDD 2001: the same ordering applied to a rectangular matrix with rows and columns of different kinds.</li>
+        <li>McCormick, W. T., Schweitzer, P. J. and White, T. W., <a href="https://econpapers.repec.org/RePEc:inm:oropre:v:20:y:1972:i:5:p:993-1009" target="_blank" rel="noopener">Problem decomposition and data reorganization by a clustering technique</a>, Operations Research 20(5), 993–1009, 1972: the bond-energy algorithm.</li>
+        <li>King, J. R., <a href="https://econpapers.repec.org/RePEc:eee:jomega:v:8:y:1980:i:2:p:193-199" target="_blank" rel="noopener">Machine-component group formation in group technology</a>, Omega 8(2), 193–199, 1980: rank-order clustering of a part–machine matrix into blocks.</li>
+        <li>Barber, M. J., <a href="https://doi.org/10.1103/PhysRevE.76.066102" target="_blank" rel="noopener">Modularity and community detection in bipartite networks</a>, Physical Review E 76, 066102, 2007: the modularity used to pick the blocks.</li>
+        <li>Eppinger, S. D. and Browning, T. R., <a href="https://en.wikipedia.org/wiki/Design_structure_matrix" target="_blank" rel="noopener">Design Structure Matrix Methods and Applications</a>, MIT Press, 2012: clustering and sequencing of square dependency matrices, the DSM cousin of this view.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="view tk" id="view-items" hidden>
+  <p style="max-width:84ch;color:var(--muted);margin:0 0 12px">Which work items carry the house, and how far they have come. Each characteristic's weighted importance is split over the items it links to, so an item's share is the part of the whole house it carries; the shares follow the weights and the cells live. Status, due date and effort are whatever you loaded; a status is not a proof, so the table also reads each status against your own test verdict.</p>
+  <div class="tiles" id="tk-tiles"></div>
+  <div class="below">
+    <div class="panel" id="tk-path"></div>
+    <div class="panel" id="tk-gates"></div>
+  </div>
+  <div class="tbl-wrap" style="margin-top:16px"><table class="tbl" id="tbl-items"></table></div>
+  <p class="foot-note" id="tk-foot"></p>
+</section>
+
+<section class="view" id="view-needs" hidden><div class="tbl-wrap"><table class="tbl" id="tbl-needs"></table></div></section>
+<section class="view" id="view-hows" hidden><div class="tbl-wrap"><table class="tbl" id="tbl-hows"></table></div></section>
+
+<section class="view" id="view-roof" hidden>
+  <p style="max-width:70ch;color:var(--muted);margin:0 0 10px">The roof says how the characteristics help or fight each other. A trade-off (− or −−) is a decision for the owner, not a silent default. Only pairs with a value are listed; add one below.</p>
+  <div class="addrow">
+    <select id="add-a" aria-label="First characteristic"></select>
+    <span>with</span>
+    <select id="add-b" aria-label="Second characteristic"></select>
+    <select id="add-v" aria-label="Correlation">
+      <option value="++">++ strong positive</option>
+      <option value="+" selected>+ positive</option>
+      <option value="−">− trade-off</option>
+      <option value="−−">−− strong trade-off</option>
+    </select>
+    <button class="btn" id="add-go">Add pair</button>
+  </div>
+  <div class="tbl-wrap"><table class="tbl" id="tbl-roof"></table></div>
+</section>
+
+<section class="view" id="view-legend" hidden>
+  <div class="legend">
+    <div class="panel">
+      <h2>What it is</h2>
+      <p>A House of Quality (the first QFD matrix) links what the stakeholders need (WHATs, the rows) to the measurable characteristics of the design (HOWs, the columns), and shows which characteristics matter most. The method, step by step, is in <a href="../docs/method.md">docs/method.md</a>; every formula is in <a href="../docs/formulas.md">docs/formulas.md</a>.</p>
+      <dl>
+        <dt>Left wall</dt><dd><span id="lg-n">n</span> needs, each with its source and an importance from 1 to 5.</dd>
+        <dt>Ceiling</dt><dd><span id="lg-m">m</span> characteristics with a unit and a direction of improvement.</dd>
+        <dt>Room</dt><dd>How strongly each characteristic drives each need.</dd>
+        <dt>Roof</dt><dd>How the characteristics help or fight each other. Each diamond sits where the diagonals from two columns meet.</dd>
+        <dt>Right wall</dt><dd>Today's score against the goal per need, giving an improvement ratio and an adjusted weight.</dd>
+        <dt>Basement</dt><dd>Target, today's state, weighted importance, relative share, must-pass gate, rank, difficulty and the links per characteristic.</dd>
+        <dt>Diagonal</dt><dd>The same room with its rows and columns reordered so the relationships gather along the diagonal: the modules of the design, and the couplings between them.</dd>
+        <dt>Work items</dt><dd>Which tickets or tasks carry the house, their status, due date and effort, and whether your own tests agree with the status.</dd>
+      </dl>
+    </div>
+    <div class="panel">
+      <h2>Scoring</h2>
+      <dl>
+        <dt>Importance</dt><dd>5 essential, 4 very important, 3 important, 2 nice to have, 1 minor. Set with the stakeholders; record who set it and when.</dd>
+        <dt>Must-pass gate</dt><dd>A characteristic that must pass before anything ships, whatever its weight. It keeps its weighted importance in the room but is never ranked against the feature characteristics.</dd>
+        <dt><span class="key k9">●</span>9</dt><dd>Strong: this characteristic decides whether the need is met.</dd>
+        <dt><span class="key k3">○</span>3</dt><dd>Medium: clear influence.</dd>
+        <dt><span class="key k1">△</span>1</dt><dd>Weak: some influence.</dd>
+        <dt><span class="key kpp">++</span></dt><dd>Strong positive: improving one strongly helps the other.</dd>
+        <dt><span class="key kp">+</span></dt><dd>Positive: helps.</dd>
+        <dt><span class="key kn">−</span></dt><dd>Trade-off: improving one tends to hurt the other.</dd>
+        <dt><span class="key knn">−−</span></dt><dd>Strong trade-off.</dd>
+        <dt>↑ ↓ ◎</dt><dd>Larger is better, smaller is better, meet a set target.</dd>
+        <dt>Weighted importance</dt><dd>Per column: Σ over needs of (weight × relationship). Weight is the importance, or importance × (goal ÷ today) when "Importance × gap" is on.</dd>
+        <dt>Today / goal</dt><dd>1 poor to 5 excellent. Ratio = goal ÷ today; adjusted weight = importance × ratio.</dd>
+      </dl>
+    </div>
+    <div class="panel">
+      <h2>How to edit</h2>
+      <ul style="padding-left:18px;margin:6px 0">
+        <li>Click a room cell to cycle blank → △ 1 → ○ 3 → ● 9 → blank. With the keyboard: 1, 3, 9 set a value, 0 or Delete clears, arrows move.</li>
+        <li>Click a dot in the Importance column to set 1 to 5.</li>
+        <li>Type in the two small boxes on the right wall for today's score and the goal.</li>
+        <li>Click a roof diamond to cycle none → ++ → + → − → −−, or use the Roof pairs view.</li>
+        <li>Click the dashed difficulty box to step 1 to 5.</li>
+        <li>The lists themselves (needs, characteristics, work items, title) are edited on the Input tab, where you also load and save files.</li>
+        <li>Order: Diagonal reorders the house itself into the blocks found in the Diagonal view (thick lines mark the block edges); As listed puts it back.</li>
+        <li>Copy as TSV puts the whole house on the clipboard for Excel, with the export date and the scoring mode in its first row: send the dated TSV around as the version of record. Page edits stay in this browser.</li>
+      </ul>
+    </div>
+    <div class="panel" id="lg-notes-panel" hidden>
+      <h2>Notes on this house</h2>
+      <dl id="lg-notes"></dl>
+    </div>
+  </div>
+</section>
+</div>
+
+<div class="tip" id="tip" role="tooltip"></div>
+<div class="toast" id="toast"></div>
+
+<script src="hoq-core.js"></script>
+<script src="sample-house.js"></script>
+<script>
+(function(){
+'use strict';
+const H=window.HOQ;
+const KEY='hoq-house-v1',PKEY='hoq-prefs-v1';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt1=H.fmt1,pct=H.pct,SYM=H.SYM,WORD=H.WORD,ROOF_WORD=H.ROOF_WORD;
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const REL_CYCLE=[0,1,3,9];
+const ROOF_CYCLE=['','++','+','−','−−'];
+const ROOF_CLASS={'++':'v-pp','+':'v-p','−':'v-n','−−':'v-nn','':'v-0'};
+const clone=o=>JSON.parse(JSON.stringify(o));
+
+// ---------- state: the house itself (data + ratings), a snapshot of what was loaded, and the view preferences ----------
+let HOUSE=null,HOUSE0=null;
+let P={mode:'importance',disp:'sym',roofShown:true,order:null,dgUse:'all',dgK:0};
+let WHATS=[],HOWS=[];       // display order (permuted when a diagonal order is applied)
+let IDX={};                 // characteristic id -> listed index, for canonical roof keys
+const canon=(a,b)=>IDX[a]<IDX[b]?a+'|'+b:b+'|'+a;
+const REL=()=>HOUSE.relationships;
+const rel=(w,h)=>(HOUSE.relationships[w]||{})[h]||0;
+const setRel=(w,h,v)=>{if(!HOUSE.relationships[w])HOUSE.relationships[w]={};if(v)HOUSE.relationships[w][h]=v;else delete HOUSE.relationships[w][h];};
+const howById=id=>HOUSE.characteristics.find(h=>h.id===id);
+const shortName=h=>h.short||h.name;
+function save(){try{localStorage.setItem(KEY,JSON.stringify({house:HOUSE,house0:HOUSE0}));localStorage.setItem(PKEY,JSON.stringify(P));}catch(e){}}
+function loadPrefs(){try{const p=JSON.parse(localStorage.getItem(PKEY)||'null');if(p)P=Object.assign(P,p);}catch(e){}}
+function loadStored(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.house){const r=H.normalize(s.house);if(!r.errors.length){HOUSE=r.house;HOUSE0=s.house0?H.normalize(s.house0).house:clone(HOUSE);return true;}}}catch(e){}return false;}
+function compute(){return H.compute(WHATS,HOWS,REL(),{mode:P.mode});}
+
+/** Replace the house with a new one (after normalize). Keeps the view preferences, drops any applied order. */
+function setHouse(house,opts){
+  opts=opts||{};
+  HOUSE=house;if(opts.snapshot!==false)HOUSE0=clone(house);
+  P.order=null;IDX={};HOUSE.characteristics.forEach((h,j)=>{IDX[h.id]=j;});
+  selected=null;diagDirty=true;
+  setLists();build();update();renderInput();fillAdd();renderHeader();save();
+}
+function reindex(){IDX={};HOUSE.characteristics.forEach((h,j)=>{IDX[h.id]=j;});}
+
+// ---------- the grid ----------
+const grid=$('grid');
+const cellEls=[],rowEls=[],colEls=[],howHeadIds=[];
+let selected=null,hi=-1,hj=-1;
+function setLists(){
+  let W=HOUSE.needs.slice(),X=HOUSE.characteristics.slice();
+  if(P.order){const wid={},hid={};HOUSE.needs.forEach(w=>{wid[w.id]=w;});HOUSE.characteristics.forEach(h=>{hid[h.id]=h;});
+    const w=P.order.rows.map(id=>wid[id]).filter(Boolean),h=P.order.cols.map(id=>hid[id]).filter(Boolean);
+    if(w.length===W.length&&new Set(w).size===w.length&&h.length===X.length&&new Set(h).size===h.length){W=w;X=h;}else P.order=null;}
+  WHATS=W;HOWS=X;
+}
+function build(){
+  const n=HOWS.length;
+  cellEls.length=0;rowEls.length=0;colEls.length=0;howHeadIds.length=0;hi=-1;hj=-1;
+  grid.style.gridTemplateColumns=`var(--w-id) var(--w-need) var(--w-src) var(--w-imp) repeat(${n}, var(--cw)) var(--w-cg) var(--w-ratio) var(--w-adj) var(--w-link)`;
+  const parts=[];for(let j=0;j<n;j++)colEls.push([]);
+  const add=html=>{parts.push(html);};
+  const tl=HOUSE.meta.todayLabel||'today';
+  add('<div class="c span4 tiny r-dir">Direction of improvement: ↑ more is better · ↓ less is better · ◎ meet the target</div>');
+  HOWS.forEach((h,j)=>add(`<div class="c hc dir r-dir col-${j}" data-tip="${esc(h.id+': '+(h.direction==='↑'?'larger is better':h.direction==='↓'?'smaller is better':'meet a set target'))}">${h.direction}</div>`));
+  add('<div class="c rspan tiny r-dir">Scores: 1 poor · 5 excellent</div>');
+  add('<div class="c span4 tiny">Characteristic #</div>');
+  HOWS.forEach((h,j)=>add(`<button type="button" class="c hc hid col-${j}" data-how="${esc(h.id)}" id="hid-${esc(h.id)}">${esc(h.id)}</button>`));
+  add(`<div class="c rspan tiny">${esc(cap(tl))} → goal, ratio = goal ÷ ${esc(tl)}, gap % = share of Σ importance × ratio</div>`);
+  add('<div class="c hd k0 r-name">#</div>');
+  add('<div class="c hd k1 r-name">Need (WHAT)</div>');
+  add('<div class="c hd k2 r-name">Source</div>');
+  add('<div class="c hd k3 r-name">Importance 1–5</div>');
+  HOWS.forEach((h,j)=>add(`<button type="button" class="c hc hname r-name col-${j}${h.gate?' gated':''}" data-how="${esc(h.id)}" data-tip="${esc(h.id+' · '+h.name+' ('+h.unit+')'+(h.gate?'\nMust-pass gate: kept out of the rank':''))}"><span class="vt"><b>${esc(h.short)}</b><i>${esc(h.unit)}</i></span></button>`));
+  add(`<div class="c hd r-name rw">${esc(cap(tl))} → goal</div>`);
+  add('<div class="c hd r-name rw">Ratio</div>');
+  add('<div class="c hd r-name rw">Gap %</div>');
+  add('<div class="c hd r-name rw lk">Links</div>');
+  WHATS.forEach((w,i)=>{
+    add(`<div class="c lw wid r-what row-${i}">${esc(w.id)}</div>`);
+    add(`<button type="button" class="c lw need r-what row-${i}" data-what="${esc(w.id)}" data-tip="${esc(w.need)}"><span>${esc(w.need)}</span></button>`);
+    add(`<div class="c lw src k2 r-what row-${i}" data-tip="${esc('Source: '+w.source)}"><span>${esc(w.source)}</span></div>`);
+    let dots='';for(let k=1;k<=5;k++)dots+=`<button type="button" class="dot" data-what="${esc(w.id)}" data-k="${k}" aria-label="${esc(w.id)} importance ${k}"></button>`;
+    add(`<div class="c lw r-what row-${i}"><div class="imp" id="imp-${esc(w.id)}" role="group" aria-label="Importance of ${esc(w.id)}">${dots}<span class="num"></span></div></div>`);
+    HOWS.forEach((h,j)=>add(`<div class="c r-what" style="padding:0"><button type="button" class="cell" data-i="${i}" data-j="${j}" data-v="0" aria-label="${esc(w.id)} by ${esc(h.id)}"></button></div>`));
+    add(`<div class="c rw r-what row-${i}"><div class="cg"><input class="n" type="number" min="1" max="5" step="1" id="now-${esc(w.id)}" data-what="${esc(w.id)}" data-f="today" aria-label="${esc(w.id)} score today"><div class="track"><span class="segm"></span><span class="m now"></span><span class="m goal"></span></div><input class="n" type="number" min="1" max="5" step="1" id="goal-${esc(w.id)}" data-what="${esc(w.id)}" data-f="goal" aria-label="${esc(w.id)} goal score"></div></div>`);
+    add(`<div class="c rw mono r-what row-${i}" id="ratio-${esc(w.id)}"></div>`);
+    add(`<div class="c rw mono r-what row-${i}" id="adj-${esc(w.id)}"></div>`);
+    add(`<div class="c rw lk r-what row-${i}"><span class="link" data-tip="${esc(w.links)}">${esc(w.links)}</span></div>`);
+  });
+  const base=[
+    {label:'Target value',sub:'',cls:'r-txt',cell:(h,j)=>`<div class="c hc vtx r-txt col-${j}" data-tip="${esc(h.id+' target: '+h.target)}"><span>${esc(h.targetShort)}</span></div>`},
+    {label:cap(tl),sub:HOUSE.meta.date?'as of '+HOUSE.meta.date:'',cls:'r-txt',cell:(h,j)=>`<div class="c hc vtx r-txt col-${j}" data-tip="${esc(h.id+' '+tl+': '+h.today)}"><span>${esc(h.todayShort)}</span></div>`},
+    {label:'Weighted importance',sub:'Σ (need weight × relationship)',cls:'',cell:(h,j)=>`<div class="c hc wt col-${j}" id="abs-${esc(h.id)}"><span class="fill"></span><span class="v"></span></div>`},
+    {label:'Relative weight %',sub:'',cls:'',cell:(h,j)=>`<div class="c hc mono col-${j}" id="pct-${esc(h.id)}"></div>`},
+    {label:'Must-pass gate',sub:'kept out of the rank',cls:'',cell:(h,j)=>`<div class="c hc gate col-${j}" data-tip="${esc(h.id+(h.gate?': must pass before anything ships; not ranked against the feature characteristics':': feature characteristic, ranked'))}">${h.gate?'<span class="gpill">gate</span>':''}</div>`},
+    {label:'Priority rank',sub:'1 = most important of the ranked; top five highlighted',cls:'',cell:(h,j)=>`<div class="c hc rank col-${j}" id="rank-${esc(h.id)}"><span class="pill"></span></div>`},
+    {label:'Technical difficulty 1–5',sub:'click to step',cls:'',cell:(h,j)=>`<div class="c hc dif col-${j}"><button type="button" data-diff="${esc(h.id)}" id="diff-${esc(h.id)}" aria-label="Difficulty of ${esc(h.id)}"></button></div>`},
+    {label:'Links',sub:'work items',cls:'r-txt',cell:(h,j)=>`<div class="c hc vtx r-txt col-${j}" data-tip="${esc(h.links)}"><span>${esc(h.links)}</span></div>`}
+  ];
+  base.forEach(b=>{add(`<div class="c span4 lw lbl ${b.cls}">${esc(b.label)}${b.sub?`<small>${esc(b.sub)}</small>`:''}</div>`);HOWS.forEach((h,j)=>add(b.cell(h,j)));add(`<div class="c rspan ${b.cls}"></div>`);});
+  grid.innerHTML=parts.join('');
+  grid.querySelectorAll('.cell').forEach(el=>{const i=+el.dataset.i,j=+el.dataset.j;(cellEls[i]=cellEls[i]||[])[j]=el;});
+  WHATS.forEach((w,i)=>{rowEls[i]=[...grid.querySelectorAll('.row-'+i)];});
+  HOWS.forEach((h,j)=>{colEls[j]=[...grid.querySelectorAll('.col-'+j)];howHeadIds[j]=$('hid-'+h.id);});
+  if(P.order&&P.order.rowCuts&&P.order.colCuts){
+    P.order.colCuts.slice(1).forEach(j=>{if(colEls[j]){colEls[j].forEach(el=>el.classList.add('bL'));cellEls.forEach(r=>r[j]&&r[j].classList.add('bL'));}});
+    P.order.rowCuts.slice(1).forEach(i=>{if(rowEls[i]){rowEls[i].forEach(el=>el.classList.add('bT'));cellEls[i].forEach(el=>el.classList.add('bT'));}});
+  }
+  if(grid.dataset.wired)return;grid.dataset.wired='1';
+  grid.addEventListener('click',onGridClick);
+  grid.addEventListener('keydown',onGridKey);
+  grid.addEventListener('input',e=>{const t=e.target;if(t.classList.contains('n')){let v=parseInt(t.value,10);if(isNaN(v))return;v=Math.min(5,Math.max(1,v));const w=HOUSE.needs.find(x=>x.id===t.dataset.what);if(w){w[t.dataset.f]=v;save();update();renderInput();}}});
+  grid.addEventListener('change',e=>{const t=e.target;if(t.classList.contains('n')){const w=HOUSE.needs.find(x=>x.id===t.dataset.what);if(w)t.value=w[t.dataset.f];}});
+  grid.addEventListener('mouseover',e=>{const c=e.target.closest('.cell');if(c){highlight(+c.dataset.i,+c.dataset.j);return;}const hh=e.target.closest('[data-how]');if(hh){highlight(-1,HOWS.findIndex(h=>h.id===hh.dataset.how));return;}const ww=e.target.closest('.lw,.rw');if(ww){const m=[...ww.classList].find(c=>/^row-\d+$/.test(c));if(m)highlight(+m.slice(4),-1);}});
+  grid.addEventListener('mouseleave',()=>highlight(-1,-1));
+}
+function highlight(i,j){
+  if(i===hi&&j===hj)return;
+  if(hi>=0&&rowEls[hi]){rowEls[hi].forEach(el=>el.classList.remove('hl'));cellEls[hi].forEach(el=>el.classList.remove('hl'));}
+  if(hj>=0&&colEls[hj]){colEls[hj].forEach(el=>el.classList.remove('hl'));cellEls.forEach(r=>r[hj]&&r[hj].classList.remove('hl'));}
+  hi=i;hj=j;
+  if(hi>=0&&rowEls[hi]){rowEls[hi].forEach(el=>el.classList.add('hl'));cellEls[hi].forEach(el=>el.classList.add('hl'));}
+  if(hj>=0&&colEls[hj]){colEls[hj].forEach(el=>el.classList.add('hl'));cellEls.forEach(r=>r[hj]&&r[hj].classList.add('hl'));}
+}
+function onGridClick(e){
+  const dot=e.target.closest('.dot');
+  if(dot){const w=HOUSE.needs.find(x=>x.id===dot.dataset.what);if(w){w.importance=+dot.dataset.k;save();update();renderInput();}return;}
+  const cell=e.target.closest('.cell');
+  if(cell){const i=+cell.dataset.i,j=+cell.dataset.j;const w=WHATS[i].id,h=HOWS[j].id;const cur=rel(w,h);const idx=REL_CYCLE.indexOf(cur);setRel(w,h,REL_CYCLE[(idx+(e.shiftKey?REL_CYCLE.length-1:1))%REL_CYCLE.length]);save();update();return;}
+  const df=e.target.closest('[data-diff]');
+  if(df){const h=howById(df.dataset.diff);if(h){h.difficulty=(h.difficulty%5)+1;save();update();renderInput();}return;}
+  const hh=e.target.closest('[data-how]');
+  if(hh){select('how',hh.dataset.how);return;}
+  const ww=e.target.closest('[data-what]');
+  if(ww&&ww.classList.contains('need')){select('what',ww.dataset.what);return;}
+}
+function onGridKey(e){
+  const cell=e.target.closest('.cell');if(!cell)return;
+  const i=+cell.dataset.i,j=+cell.dataset.j;const w=WHATS[i].id,h=HOWS[j].id;
+  if(['1','3','9'].includes(e.key)){setRel(w,h,+e.key);save();update();e.preventDefault();return;}
+  if(e.key==='0'||e.key==='Delete'||e.key==='Backspace'){setRel(w,h,0);save();update();e.preventDefault();return;}
+  const mv={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}[e.key];
+  if(mv){const ni=Math.min(WHATS.length-1,Math.max(0,i+mv[0])),nj=Math.min(HOWS.length-1,Math.max(0,j+mv[1]));cellEls[ni][nj].focus();e.preventDefault();}
+}
+
+// ---------- update everything that depends on the ratings ----------
+function update(){
+  const C=compute();
+  $('mode-imp').setAttribute('aria-pressed',P.mode!=='gap');$('mode-gap').setAttribute('aria-pressed',P.mode==='gap');
+  $('disp-sym').setAttribute('aria-pressed',P.disp==='sym');$('disp-num').setAttribute('aria-pressed',P.disp==='num');
+  $('roof-on').setAttribute('aria-pressed',!!P.roofShown);$('roof-off').setAttribute('aria-pressed',!P.roofShown);
+  $('ord-orig').setAttribute('aria-pressed',!P.order);$('ord-diag').setAttribute('aria-pressed',!!P.order);
+  WHATS.forEach((w,i)=>HOWS.forEach((h,j)=>{const v=rel(w.id,h.id);const el=cellEls[i][j];el.dataset.v=v;el.textContent=P.disp==='sym'?SYM[v]:(v||'');el.classList.toggle('sym',P.disp==='sym');el.dataset.tip=`${w.id} × ${h.id}: ${WORD[v]}\n${w.short} ← ${h.name}`;}));
+  WHATS.forEach((w,i)=>{
+    const box=$('imp-'+w.id);box.querySelectorAll('.dot').forEach(d=>d.classList.toggle('on',+d.dataset.k<=w.importance));box.querySelector('.num').textContent=w.importance;
+    const ni=$('now-'+w.id),gi=$('goal-'+w.id);if(document.activeElement!==ni)ni.value=w.today;if(document.activeElement!==gi)gi.value=w.goal;
+    const tr=ni.parentElement.querySelector('.track');const p=v=>((v-1)/4*100);
+    tr.querySelector('.m.now').style.left=p(w.today)+'%';tr.querySelector('.m.goal').style.left=p(w.goal)+'%';
+    const sg=tr.querySelector('.segm');const lo=Math.min(w.today,w.goal),hi2=Math.max(w.today,w.goal);sg.style.left=p(lo)+'%';sg.style.width=(p(hi2)-p(lo))+'%';
+    tr.dataset.tip=`${w.id}: today ${w.today}, goal ${w.goal}`;
+    $('ratio-'+w.id).textContent=fmt1(C.ratio[i])+'×';
+    $('adj-'+w.id).textContent=pct(C.adjPct[i]);
+    $('adj-'+w.id).dataset.tip=`Adjusted weight ${fmt1(C.adj[i])} = importance ${w.importance} × ratio ${fmt1(C.ratio[i])}`;
+  });
+  HOWS.forEach((h,j)=>{
+    const a=$('abs-'+h.id);a.querySelector('.v').textContent=Number.isInteger(C.abs[j])?C.abs[j]:fmt1(C.abs[j]);a.querySelector('.fill').style.width=(C.abs[j]/C.max*100)+'%';a.classList.toggle('top',C.top[j]);
+    a.dataset.tip=`${h.id} weighted importance ${fmt1(C.abs[j])} (${pct(C.pct[j])}), ${H.rankText(C,j)}`;
+    $('pct-'+h.id).textContent=pct(C.pct[j]).replace('%','');
+    const pill=$('rank-'+h.id).querySelector('.pill');pill.textContent=C.gate[j]?'gate':C.rank[j];pill.classList.toggle('top',C.top[j]);pill.classList.toggle('gate',C.gate[j]);
+    $('diff-'+h.id).textContent=h.difficulty;
+  });
+  renderStrip(C);renderCharts(C);renderDetail(C);renderTables(C);renderItems(C);renderLegend();
+  diagDirty=true;if(!$('view-diag').hidden)renderDiag();
+  const relCount=WHATS.reduce((s,w)=>s+HOWS.filter(h=>rel(w.id,h.id)).length,0);
+  const roofCount=Object.values(HOUSE.roof).filter(Boolean).length;
+  const gates=HOWS.filter(h=>h.gate).length;
+  const ord=P.order?` · order: diagonal, ${P.order.k||(P.order.rowCuts||[]).length} blocks (thick lines mark the block edges)`:' · order: as listed';
+  $('footnote').textContent=`${WHATS.length} needs · ${HOWS.length} characteristics${gates?` (${gates} must-pass gate${gates===1?'':'s'}, not ranked)`:''} · ${relCount} relationships set · ${roofCount} roof pairs · weighting by ${P.mode==='gap'?'importance × gap':'importance'}${ord}. Hover a cell for the pair; click to change it. Sticky first columns scroll with the room.`;
+  $('chart1-sub').textContent=P.mode==='gap'?'weighted by importance × gap':'weighted by importance';
+  const ne=editCount();$('edits').textContent=ne?`${ne} edit${ne===1?'':'s'} since the file was loaded (this browser only)`:'as loaded';
+  renderRoof();
+}
+function editCount(){
+  if(!HOUSE0)return 0;let n=0;const w0={},h0={};HOUSE0.needs.forEach(w=>{w0[w.id]=w;});HOUSE0.characteristics.forEach(h=>{h0[h.id]=h;});
+  HOUSE.needs.forEach(w=>{const o=w0[w.id];if(!o){n++;return;}['need','short','source','importance','today','goal','links','why'].forEach(f=>{if(w[f]!==o[f])n++;});HOUSE.characteristics.forEach(h=>{if(rel(w.id,h.id)!==((HOUSE0.relationships[w.id]||{})[h.id]||0))n++;});});
+  HOUSE.characteristics.forEach(h=>{const o=h0[h.id];if(!o){n++;return;}['name','short','unit','direction','target','targetShort','today','todayShort','links','difficulty','gate'].forEach(f=>{if(h[f]!==o[f])n++;});});
+  n+=Math.abs(HOUSE.needs.length-HOUSE0.needs.length)+Math.abs(HOUSE.characteristics.length-HOUSE0.characteristics.length);
+  const keys=new Set([...Object.keys(HOUSE.roof),...Object.keys(HOUSE0.roof)]);keys.forEach(k=>{if((HOUSE.roof[k]||'')!==(HOUSE0.roof[k]||''))n++;});
+  if(JSON.stringify(HOUSE.items)!==JSON.stringify(HOUSE0.items))n++;
+  if(HOUSE.title!==HOUSE0.title||HOUSE.subtitle!==HOUSE0.subtitle||JSON.stringify(HOUSE.meta)!==JSON.stringify(HOUSE0.meta))n++;
+  return n;
+}
+function renderHeader(){
+  $('hdr-title').textContent=HOUSE.title||'House of Quality';document.title=HOUSE.title||'House of Quality';
+  $('hdr-sub').textContent=HOUSE.subtitle||'';
+  $('hdr-eyebrow').textContent=['QFD · House of Quality',HOUSE.meta.date?'data as of '+HOUSE.meta.date:'',HOUSE.meta.author?'by '+HOUSE.meta.author:''].filter(Boolean).join(' · ');
+}
+
+// ---------- roof ----------
+const roofWrap=$('roof');
+function renderRoof(){
+  if(!P.roofShown){roofWrap.hidden=true;return;}
+  roofWrap.hidden=false;
+  const n=HOWS.length;if(!howHeadIds[0]){roofWrap.innerHTML='';return;}
+  const xs=howHeadIds.map(el=>el.offsetLeft+el.offsetWidth/2);
+  const pitch=xs.length>1?(xs[1]-xs[0]):37;const half=pitch/2;
+  const W=grid.offsetWidth;const Hh=n*half+2;
+  let svg=`<svg width="${W}" height="${Hh}" viewBox="0 0 ${W} ${Hh}" role="group" aria-label="Roof: correlations between characteristics">`;
+  for(let a=0;a<n;a++)for(let b=a+1;b<n;b++){
+    const cx=(xs[a]+xs[b])/2,cy=Hh-1-(b-a)*half;const k=canon(HOWS[a].id,HOWS[b].id);const v=HOUSE.roof[k]||'';
+    const pts=`${cx},${cy-half+0.5} ${cx+half-0.5},${cy} ${cx},${cy+half-0.5} ${cx-half+0.5},${cy}`;
+    const sel=selected&&selected.type==='how'&&(selected.id===HOWS[a].id||selected.id===HOWS[b].id)&&v?' sel':'';
+    svg+=`<g class="rf ${ROOF_CLASS[v]}${sel}" data-k="${esc(k)}" tabindex="0" role="button" aria-label="${esc(HOWS[a].id)} with ${esc(HOWS[b].id)}: ${v||'none'}"><polygon points="${pts}"/><text x="${cx}" y="${cy}">${v}</text></g>`;
+  }
+  svg+='</svg>';
+  roofWrap.innerHTML=`<div class="roof-title">Roof · how the characteristics help (+) or fight (−) each other · click a diamond</div>`+svg;
+}
+roofWrap.addEventListener('click',e=>{const g=e.target.closest('.rf');if(!g)return;cycleRoof(g.dataset.k,e.shiftKey);});
+roofWrap.addEventListener('keydown',e=>{const g=e.target.closest('.rf');if(!g)return;if(e.key==='Enter'||e.key===' '){e.preventDefault();cycleRoof(g.dataset.k,e.shiftKey);}});
+roofWrap.addEventListener('mouseover',e=>{const g=e.target.closest('.rf');if(!g)return;const [a,b]=g.dataset.k.split('|');const v=HOUSE.roof[g.dataset.k]||'';showTip(e,`${a} × ${b}: ${v?v+' '+ROOF_WORD[v]:'no correlation set'}\n${howById(a).name}\n${howById(b).name}`);});
+roofWrap.addEventListener('mouseout',e=>{if(e.target.closest('.rf'))hideTip();});
+function cycleRoof(k,back){const cur=HOUSE.roof[k]||'';const idx=ROOF_CYCLE.indexOf(cur);const nv=ROOF_CYCLE[(idx+(back?ROOF_CYCLE.length-1:1))%ROOF_CYCLE.length];if(nv)HOUSE.roof[k]=nv;else delete HOUSE.roof[k];save();update();}
+
+// ---------- strip, charts, detail, tables ----------
+function renderStrip(C){
+  const order=[...HOWS.keys()].filter(j=>!C.gate[j]).sort((a,b)=>C.abs[b]-C.abs[a]).slice(0,5);
+  const gates=[...HOWS.keys()].filter(j=>C.gate[j]);
+  $('strip').innerHTML=`<span class="lbl">Top five now:</span>`+order.map(j=>`<button type="button" class="chip" data-how="${esc(HOWS[j].id)}"><b>${C.rank[j]}</b>${esc(HOWS[j].id)} · ${esc(shortName(HOWS[j]))}<span class="w">${pct(C.pct[j])}</span></button>`).join('')
+    +(gates.length?`<span class="lbl gl">Must-pass gates:</span>`+gates.map(j=>`<button type="button" class="chip gate" data-how="${esc(HOWS[j].id)}"><b>gate</b>${esc(HOWS[j].id)} · ${esc(shortName(HOWS[j]))}</button>`).join(''):'');
+}
+$('strip').addEventListener('click',e=>{const c=e.target.closest('[data-how]');if(c)select('how',c.dataset.how);});
+function renderCharts(C){
+  const order=[...HOWS.keys()].sort((a,b)=>C.abs[b]-C.abs[a]);
+  $('chart1').innerHTML=order.map(j=>{const h=HOWS[j];return `<div class="br" data-how="${esc(h.id)}" data-tip="${esc(h.id+' · '+h.name+'\nweighted importance '+fmt1(C.abs[j])+' · '+pct(C.pct[j])+' · '+H.rankText(C,j))}"><span class="bl"><b>${esc(h.id)}</b>${esc(shortName(h))}</span><span class="bt"><span class="bf${C.top[j]?' top':''}${C.gate[j]?' gate':''}" style="width:${C.abs[j]/C.max*100}%"></span></span><span class="bv">${fmt1(C.abs[j])} · ${pct(C.pct[j])}${C.gate[j]?' · gate':''}</span></div>`;}).join('');
+  const o2=[...WHATS.keys()].sort((a,b)=>C.adj[b]-C.adj[a]);const m2=Math.max(...C.adj,1);
+  $('chart2').innerHTML=o2.map(i=>{const w=WHATS[i];return `<div class="br" data-what="${esc(w.id)}" data-tip="${esc(w.id+' · '+w.need+'\nimportance '+w.importance+' × ratio '+fmt1(C.ratio[i])+' = '+fmt1(C.adj[i])+' ('+pct(C.adjPct[i])+')')}"><span class="bl"><b>${esc(w.id)}</b>${esc(w.short)}</span><span class="bt"><span class="bf" style="width:${C.adj[i]/m2*100}%"></span></span><span class="bv">${w.today}→${w.goal} · ${fmt1(C.adj[i])}</span></div>`;}).join('');
+}
+$('chart1').addEventListener('click',e=>{const r=e.target.closest('[data-how]');if(r)select('how',r.dataset.how);});
+$('chart2').addEventListener('click',e=>{const r=e.target.closest('[data-what]');if(r)select('what',r.dataset.what);});
+function select(type,id){
+  if(selected&&selected.type===type&&selected.id===id)selected=null;else selected={type,id};
+  grid.querySelectorAll('.sel').forEach(el=>el.classList.remove('sel'));
+  if(selected){if(type==='how'){const j=HOWS.findIndex(h=>h.id===id);if(j>=0)colEls[j].forEach(el=>el.classList.add('sel'));}else{const i=WHATS.findIndex(w=>w.id===id);if(i>=0)rowEls[i].forEach(el=>el.classList.add('sel'));}}
+  update();
+  if(selected){const d=$('detail');const r=d.getBoundingClientRect();if(r.top<0||r.top>window.innerHeight-80)d.scrollIntoView({behavior:'smooth',block:'nearest'});}
+}
+function renderDetail(C){
+  const d=$('detail');
+  if(!selected){d.innerHTML='<div class="empty">Select a column header (a characteristic) or a need to see its full text, target, today\'s state and what it drives.</div>';return;}
+  if(selected.type==='how'){
+    const j=HOWS.findIndex(h=>h.id===selected.id);if(j<0){selected=null;return renderDetail(C);}const h=HOWS[j];
+    const drives=WHATS.map((w,i)=>({w,v:rel(w.id,h.id),c:rel(w.id,h.id)*C.wts[i]})).filter(x=>x.v).sort((a,b)=>b.c-a.c);
+    const pairs=Object.keys(HOUSE.roof).filter(k=>k.split('|').includes(h.id)&&HOUSE.roof[k]).map(k=>{const o=k.split('|').find(x=>x!==h.id);return {o:howById(o),v:HOUSE.roof[k]};}).filter(p=>p.o);
+    d.innerHTML=`<div class="tag">${esc(h.id)} · characteristic (HOW) · ${C.gate[j]?'must-pass gate · not ranked':'rank '+C.rank[j]+' of '+C.nRanked+' ranked'}</div><h3>${esc(h.name)}</h3>
+    <dl class="kv"><dt>Unit</dt><dd>${esc(h.unit)} ${h.direction}</dd><dt>Target</dt><dd>${esc(h.target)}</dd>${h.gate?'<dt>Gate</dt><dd>Must pass before anything ships, whatever its weight; kept out of the priority rank.</dd>':''}<dt>${esc(cap(HOUSE.meta.todayLabel||'today'))}</dt><dd>${esc(h.today)}</dd><dt>Weight</dt><dd class="mono">${fmt1(C.abs[j])} · ${pct(C.pct[j])} of the total</dd><dt>Difficulty</dt><dd>${h.difficulty} of 5</dd><dt>Links</dt><dd>${esc(h.links)}</dd></dl>
+    <p><b>Drives these needs</b> (relationship × weight)</p><ul>${drives.map(x=>`<li><span class="k">${esc(x.w.id)}</span><span>${esc(x.w.short)}</span><span class="v">${SYM[x.v]} ${x.v} × ${fmt1(C.wts[WHATS.indexOf(x.w)])} = ${fmt1(x.c)}</span></li>`).join('')||'<li>No relationships set.</li>'}</ul>
+    <p style="margin-top:12px"><b>Roof pairs</b></p><ul>${pairs.map(p=>`<li><span class="k">${esc(p.o.id)}</span><span><span class="sw" style="background:var(${p.v==='++'?'--roof-pp':p.v==='+'?'--roof-p':p.v==='−'?'--roof-n':'--roof-nn'})"></span>${esc(p.o.name)}</span><span class="v">${p.v}</span></li>`).join('')||'<li>No roof pairs set for this characteristic.</li>'}</ul>`;
+  }else{
+    const i=WHATS.findIndex(w=>w.id===selected.id);if(i<0){selected=null;return renderDetail(C);}const w=WHATS[i];
+    const driven=HOWS.map((h,j)=>({h,v:rel(w.id,h.id),j})).filter(x=>x.v).sort((a,b)=>b.v-a.v||C.abs[b.j]-C.abs[a.j]);
+    d.innerHTML=`<div class="tag">${esc(w.id)} · need (WHAT) · source: ${esc(w.source)}</div><h3>${esc(w.need)}</h3>
+    ${w.why?`<p>${esc(w.why)}</p>`:''}
+    <dl class="kv"><dt>Importance</dt><dd>${w.importance} of 5${P.mode==='gap'?` · weight in the room ${fmt1(C.wts[i])}`:''}</dd><dt>Today → goal</dt><dd class="mono">${w.today} → ${w.goal} · ratio ${fmt1(C.ratio[i])}× · adjusted weight ${fmt1(C.adj[i])} (${pct(C.adjPct[i])})</dd><dt>Links</dt><dd>${esc(w.links)}</dd></dl>
+    <p><b>Met through</b></p><ul>${driven.map(x=>`<li><span class="k">${esc(x.h.id)}</span><span>${esc(x.h.name)}</span><span class="v">${SYM[x.v]} ${x.v} · ${H.rankText(C,x.j)}</span></li>`).join('')||'<li>No relationships set.</li>'}</ul>`;
+  }
+}
+function renderTables(C){
+  const tl=cap(HOUSE.meta.todayLabel||'today');
+  $('tbl-needs').innerHTML=`<thead><tr><th>#</th><th>Need (WHAT)</th><th>Source</th><th>Why it matters</th><th>Imp.</th><th>${esc(tl)}</th><th>Goal</th><th>Ratio</th><th>Gap %</th><th>Links</th></tr></thead><tbody>${WHATS.map((w,i)=>`<tr><td class="m">${esc(w.id)}</td><td>${esc(w.need)}</td><td>${esc(w.source)}</td><td class="why">${esc(w.why)}</td><td class="m">${w.importance}</td><td class="m">${w.today}</td><td class="m">${w.goal}</td><td class="m">${fmt1(C.ratio[i])}×</td><td class="m">${pct(C.adjPct[i])}</td><td class="m">${esc(w.links)}</td></tr>`).join('')}</tbody>`;
+  $('tbl-hows').innerHTML=`<thead><tr><th>#</th><th>Characteristic (HOW)</th><th>Unit</th><th>Dir.</th><th>Target</th><th>${esc(tl)}</th><th>Weight</th><th>%</th><th>Gate</th><th>Rank</th><th>Diff.</th><th>Links</th></tr></thead><tbody>${HOWS.map((h,j)=>`<tr><td class="m">${esc(h.id)}</td><td>${esc(h.name)}</td><td>${esc(h.unit)}</td><td class="m">${h.direction}</td><td class="why">${esc(h.target)}</td><td class="why">${esc(h.today)}</td><td class="m">${fmt1(C.abs[j])}</td><td class="m">${pct(C.pct[j])}</td><td class="m">${h.gate?'must pass':''}</td><td class="m">${C.gate[j]?'gate':C.rank[j]}</td><td class="m">${h.difficulty}</td><td class="m">${esc(h.links)}</td></tr>`).join('')}</tbody>`;
+  const keys=Object.keys(HOUSE.roof).filter(k=>HOUSE.roof[k]).sort((a,b)=>{const [a1,a2]=a.split('|').map(x=>IDX[x]);const [b1,b2]=b.split('|').map(x=>IDX[x]);return a1-b1||a2-b2;});
+  $('tbl-roof').innerHTML=`<thead><tr><th>A</th><th>Characteristic A</th><th>B</th><th>Characteristic B</th><th>Correlation</th><th>Meaning</th></tr></thead><tbody>${keys.map(k=>{const [a,b]=k.split('|');const v=HOUSE.roof[k];const ha=howById(a),hb=howById(b);if(!ha||!hb)return '';return `<tr><td class="m">${esc(a)}</td><td>${esc(ha.name)}</td><td class="m">${esc(b)}</td><td>${esc(hb.name)}</td><td><select data-roof="${esc(k)}" aria-label="${esc(a)} with ${esc(b)}"><option value="++"${v==='++'?' selected':''}>++</option><option value="+"${v==='+'?' selected':''}>+</option><option value="−"${v==='−'?' selected':''}>−</option><option value="−−"${v==='−−'?' selected':''}>−−</option><option value="">remove</option></select></td><td class="why">${ROOF_WORD[v]||''}</td></tr>`;}).join('')||'<tr><td colspan="6">No roof pairs set.</td></tr>'}</tbody>`;
+}
+$('tbl-roof').addEventListener('change',e=>{const s=e.target.closest('[data-roof]');if(!s)return;if(s.value)HOUSE.roof[s.dataset.roof]=s.value;else delete HOUSE.roof[s.dataset.roof];save();update();});
+function fillAdd(){const opts=HOUSE.characteristics.map(h=>`<option value="${esc(h.id)}">${esc(h.id)} · ${esc(h.name)}</option>`).join('');$('add-a').innerHTML=opts;$('add-b').innerHTML=opts;$('add-b').selectedIndex=Math.min(1,HOUSE.characteristics.length-1);}
+$('add-go').addEventListener('click',()=>{const a=$('add-a').value,b=$('add-b').value;if(!a||!b||a===b){toast('Pick two different characteristics');return;}HOUSE.roof[canon(a,b)]=$('add-v').value;save();update();toast(`${canon(a,b).replace('|',' with ')} set to ${$('add-v').value}`);});
+function renderLegend(){
+  $('lg-n').textContent=HOUSE.needs.length;$('lg-m').textContent=HOUSE.characteristics.length;
+  const notes=HOUSE.meta.notes||[];$('lg-notes-panel').hidden=!notes.length;
+  $('lg-notes').innerHTML=notes.map(x=>`<dt>${esc(x.term||'')}</dt><dd>${esc(x.text||'')}</dd>`).join('');
+}
+
+// ---------- toolbar ----------
+$('mode-imp').addEventListener('click',()=>{P.mode='importance';save();update();});
+$('mode-gap').addEventListener('click',()=>{P.mode='gap';save();update();});
+$('disp-sym').addEventListener('click',()=>{P.disp='sym';save();update();});
+$('disp-num').addEventListener('click',()=>{P.disp='num';save();update();});
+$('roof-on').addEventListener('click',()=>{P.roofShown=true;save();update();});
+$('roof-off').addEventListener('click',()=>{P.roofShown=false;save();update();});
+$('to-input').addEventListener('click',()=>showView('input'));
+function tsvText(){const C=compute();return H.toTSV(HOUSE,C,{needs:WHATS,chars:HOWS,orderLabel:P.order?'diagonal, '+(P.order.k||'')+' blocks':'as listed'});}
+function copyTSV(){
+  const t=tsvText();const done=()=>toast('Copied: paste into Excel or Sheets');
+  const fallback=()=>{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy');}catch(e){}document.body.removeChild(ta);if(ok)done();else toast('Copy was blocked here; use Download TSV on the Input tab');};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,fallback);}else fallback();
+}
+$('copy').addEventListener('click',copyTSV);$('out-copy').addEventListener('click',copyTSV);
+
+// ---------- work items ----------
+function renderItems(C){
+  const T=H.itemShares(HOUSE,C,HOWS,WHATS);const tot=C.total||1;const Pg=H.progress(HOUSE,C);
+  const items=HOUSE.items;const keys=T.keys;const have=Object.keys(items).length>0;
+  const gates=HOWS.filter(h=>h.gate);const noItem=HOWS.filter(h=>!H.linksOf(h.links,items).length);
+  const scaleOrder=Object.keys(HOUSE.statusScale).sort((a,b)=>HOUSE.statusScale[a]-HOUSE.statusScale[b]);
+  const stPill=st=>{const p=HOUSE.statusScale[st];const cls=p===undefined?'':p>=1?'p4':p>=0.8?'p3':p>=0.5?'p2':p>0?'p1':'';return `<span class="stp ${cls}">${esc(st||'—')}</span>`;};
+  const tsPill=tc=>tc?`<span class="tp ${tc==='verified'?'verified':tc==='partial'?'partial':tc==='failed'?'failed':'nr'}">${esc(H.TESTED_CLASSES[tc])}</span>`:'<span class="tp nr">No test</span>';
+  const done=Object.keys(items).filter(k=>(HOUSE.statusScale[items[k].status]||0)>=1);
+  const doneV=done.filter(k=>items[k].tested==='verified'),doneP=done.filter(k=>items[k].tested==='partial'),doneX=done.filter(k=>items[k].tested==='failed'||items[k].tested==='not built');
+  $('tk-tiles').innerHTML=`
+   <div class="tile"><div class="tl">Right wall: today against goal</div><div class="tv">${Math.round(Pg.rightWall*100)}%<small>of the way from poor to goal</small></div><div class="ts">Importance-weighted over the ${HOUSE.needs.length} needs: (today − 1) ÷ (goal − 1).</div></div>
+   ${have?`<div class="tile"><div class="tl">Status, weighted by the house</div><div class="tv">${Pg.statusWeighted===null?'—':Math.round(Pg.statusWeighted*100)+'%'}<small>over ${Math.round(Pg.coverage*100)}% of the weight that has items</small></div><div class="ts">${scaleOrder.map(s=>`${esc(s)} ${HOUSE.statusScale[s]}`).join(' · ')}, each item weighted by its share.</div></div>
+   <div class="tile"><div class="tl">Items by status</div><div class="tv">${done.length}<small>done of ${Pg.itemCount}</small></div><div class="ts">${Object.keys(Pg.counts).map(s=>`${Pg.counts[s]} ${esc(s)}`).join(' · ')}.${Pg.effortAll?` Effort left: ${Pg.effortLeft} of ${Pg.effortAll}.`:''}</div></div>
+   <div class="tile"><div class="tl">Done, confirmed by your tests</div><div class="tv">${doneV.length}<small>of ${done.length} done</small></div><div class="ts">${doneP.length} done with open clauses${doneP.length?' ('+doneP.join(', ')+')':''}; ${doneX.length} overstated${doneX.length?' ('+doneX.join(', ')+')':''}.</div></div>
+   <div class="tile"><div class="tl">Past their due date, not done</div><div class="tv">${Pg.late.length}<small>as of ${esc(Pg.asOf)}</small></div><div class="ts">${Pg.late.map(k=>`${esc(k)} (${esc(items[k].due)})`).join(', ')||'None'}.</div></div>`:''}
+   <div class="tile"><div class="tl">Must-pass gates</div><div class="tv">${gates.length}<small>${gates.length===1?'gate':'gates'}</small></div><div class="ts">${gates.map(h=>`${esc(h.id)} ${esc(shortName(h))}`).join(' · ')||'None marked.'}</div></div>`;
+  const cp=(HOUSE.narrative&&HOUSE.narrative.criticalPath)||[];const fd=(HOUSE.narrative&&HOUSE.narrative.findings)||[];
+  $('tk-path').innerHTML=`<h2>Where the weight is</h2>${cp.length?`<p class="muted">The critical path, as written in the file:</p><ol class="path">${cp.map(([k,t])=>`<li><b>${esc(k)}</b> · ${esc(t)}</li>`).join('')}</ol>`:`<p class="muted">Items in order of the share of the house they carry:</p><ol class="path">${keys.slice(0,7).map(k=>`<li><b>${esc(k)}</b> · ${esc((items[k]||{}).title||'')} ${T.shares[k]?'('+pct(T.shares[k]/tot)+')':''}</li>`).join('')||'<li>No links name a work item yet. Put item keys in the Links fields.</li>'}</ol>`}
+   <p style="margin-top:12px"><b>Characteristics with no work item</b></p><ul class="ev">${noItem.map(h=>`<li>${esc(h.id)} ${esc(shortName(h))} (${pct(C.abs[HOWS.indexOf(h)]/tot)})${h.links?': '+esc(h.links):''}</li>`).join('')||'<li>None: every characteristic links to an item.</li>'}</ul>`;
+  $('tk-gates').innerHTML=`<h2>The gates</h2>${gates.length?`<ul class="gt">${gates.map(h=>{const t=H.linksOf(h.links,items).filter(k=>items[k]);return `<li><b>${esc(h.id)}</b> ${esc(shortName(h))} · ${t.map(k=>`${esc(k)} ${stPill(items[k].status)}${items[k].due?' <span class="due">due '+esc(items[k].due)+'</span>':''}`).join(' ')||'<span class="muted">no item</span>'}<br><span style="color:var(--muted)">${esc(h.today)}</span></li>`;}).join('')}</ul>`:'<p class="muted">No characteristic is marked as a gate. Mark one on the Input tab when it must pass before anything ships.</p>'}
+   ${fd.length?`<p style="margin-top:12px"><b>Findings</b></p><ul class="ev">${fd.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}`;
+  $('tbl-items').innerHTML=have||keys.length?`<thead><tr><th>Item</th><th>Title</th><th>Share</th><th>Serves</th><th>Status</th><th>Due</th><th>Effort</th><th>Your test</th><th>Really done?</th><th>Note</th></tr></thead><tbody>${keys.map(k=>{
+    const it=items[k]||{};const hs=T.chars[k]||[];const ns=T.needs[k]||[];
+    const serves=[...hs.map(h=>`${esc(h.id)}${h.gate?' <b>gate</b>':''}`),...ns.map(w=>esc(w.id))].join(', ');
+    const late=it.due&&it.due<Pg.asOf&&(HOUSE.statusScale[it.status]||0)<1;
+    const rd=H.reallyDone(HOUSE,it.status,it.tested);
+    return `<tr><td class="m">${esc(k)}</td><td>${esc(it.title||'')}</td><td class="m">${T.shares[k]?pct(T.shares[k]/tot):'—'}</td><td class="sv">${serves}</td><td>${stPill(it.status)}</td><td class="due${late?' late':''}">${esc(it.due||'—')}</td><td class="m">${esc(it.effort||'—')}</td><td>${tsPill(it.tested)}</td><td><span class="rd ${rd[1]}">${rd[0]}</span></td><td class="why">${esc(it.note||'')}</td></tr>`;}).join('')}</tbody>`:'<tbody><tr><td class="why">No work items loaded. Add them on the Input tab, or name item keys in the Links fields; the share column works from the links alone.</td></tr></tbody>';
+  $('tk-foot').textContent=`${keys.length} items linked from the house · share = the characteristic's weighted importance split evenly over its items, so an item on two characteristics adds both parts · an item linked only from a need shows no share · status weights: ${scaleOrder.map(s=>s+' '+HOUSE.statusScale[s]).join(', ')} · Really done? reads the status against your own test verdict.`;
+}
+
+// ---------- diagonal view ----------
+let diagDirty=true,diagLast=null;
+function diagResult(){
+  const mat=H.relMatrix(HOUSE,P.dgUse);
+  const r=H.diagonalize(mat,{k:P.dgK||0,kMax:8});
+  const N=HOUSE.needs,X=HOUSE.characteristics;
+  r.mat=mat;r.rowIds=r.rows.map(i=>N[i].id);r.colIds=r.cols.map(j=>X[j].id);
+  r.names=r.blocks.colCuts.map((c,bi)=>{const js=r.cols.slice(c,r.blocks.colCuts[bi+1]??r.m);const ids=js.map(j=>X[j].id).sort().join('+');if(HOUSE.blockNames&&HOUSE.blockNames[ids])return HOUSE.blockNames[ids];
+    const top=js.slice().sort((a,b)=>r.colSum[b]-r.colSum[a]||a-b).slice(0,2).map(j=>X[j].short);return top.join(' · ')+(js.length>2?' …':'');});
+  diagLast=r;return r;
+}
+const blockLabel=(r,bi)=>'B'+(bi+1)+(r.names[bi]?' · '+r.names[bi]:'');
+function sameOrder(r){return !!(P.order&&P.order.rows.join()===r.rowIds.join()&&P.order.cols.join()===r.colIds.join()&&(P.order.rowCuts||[]).join()===r.blocks.rowCuts.join()&&(P.order.colCuts||[]).join()===r.blocks.colCuts.join());}
+function renderDiag(){
+  diagDirty=false;
+  const N=HOUSE.needs,X=HOUSE.characteristics;
+  $('dg-n').textContent=N.length;$('dg-m').textContent=X.length;
+  $('dg-shape').textContent=X.length>N.length?`This room has more characteristics than needs, ${X.length} against ${N.length}: a redundant design in Suh's terms. That is fine; the extra columns are the ones to question first (Benavides and Rodríguez 2011).`:X.length<N.length?`This room has fewer characteristics than needs, ${X.length} against ${N.length}: some needs share a characteristic, so look for the ones that are not independently met.`:`This room is square, ${N.length} by ${X.length}.`;
+  if(N.length<2||X.length<2){$('dg-tiles').innerHTML='<div class="tile"><div class="tl">Diagonal</div><div class="tv">—</div><div class="ts">Needs at least two needs and two characteristics.</div></div>';$('dgm').innerHTML='';$('dg-bkl').innerHTML='';$('dg-blocks').innerHTML='';$('dg-couplers').innerHTML='';return;}
+  const r=diagResult();const C=H.compute(N,X,REL(),{mode:P.mode});const n=r.n,m=r.m;
+  const pc=x=>Math.round(x*100)+'%';
+  const rankOf=j=>H.rankText(C,j);
+  $('dg-all').setAttribute('aria-pressed',P.dgUse!=='strong');$('dg-strong').setAttribute('aria-pressed',P.dgUse==='strong');
+  $('dg-k').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',(+b.dataset.k)===(P.dgK||0)));
+  const same=sameOrder(r);$('dg-apply').disabled=same;$('dg-apply').textContent=same?'The House shows this order':'Show the House in this order';
+  const tie=t=>N[t.i].id+' ← '+X[t.j].id;
+  const tieTxt=(c,limit)=>c.slice(0,limit).map(tie).join(', ')+(c.length>limit?' and '+(c.length-limit)+' more':'');
+  const seqTxt=cp=>{const ties=cp.above.length?cp.above:cp.below;const seen=new Set();const out=[];ties.forEach(t=>{const k=r.colBlock[t.j]+'>'+r.rowBlock[t.i];if(seen.has(k))return;seen.add(k);out.push('B'+(r.colBlock[t.j]+1)+' before B'+(r.rowBlock[t.i]+1));});return out.join(', ');};
+  const verdictSub=(cp,label)=>{const tot=cp.above.length+cp.below.length;
+    if(cp.verdict==='uncoupled')return `No ${label}relationship leaves its block: the blocks can be settled independently.`;
+    if(cp.verdict==='decoupled')return `${tot} ${label}tie${tot===1?'':'s'} cross${tot===1?'es':''} blocks, all one way (${tieTxt(cp.above.length?cp.above:cp.below,3)}), so a build order exists: settle ${seqTxt(cp)}.`;
+    return `${cp.above.length} ${label}ties point one way and ${cp.below.length} the other, so the blocks iterate. Cutting the ${cp.cut.length} on the smaller side (${tieTxt(cp.cut,3)}) would give a clean order.`;};
+  $('dg-tiles').innerHTML=`
+   <div class="tile"><div class="tl">Relationships inside the blocks</div><div class="tv">${pc(r.after.inBlock)}<small>was ${pc(r.before.inBlock)} as listed</small></div><div class="ts">${r.k} blocks${P.dgK?', fixed':', chosen by modularity (Q = '+r.after.Q.toFixed(2)+')'}; weight 9/3/1${P.dgUse==='strong'?', strong only':''}.</div></div>
+   <div class="tile"><div class="tl">Mean distance from the diagonal</div><div class="tv">${(r.after.meanDist*100).toFixed(1)}%<small>was ${(r.before.meanDist*100).toFixed(1)}%</small></div><div class="ts">Of the matrix width, per unit of relationship. The cost J fell from ${fmt1(r.J0)} as listed to ${fmt1(r.Jspec)} spectral to ${fmt1(r.after.J)} after ${r.passes} refinement move${r.passes===1?'':'s'}.</div></div>
+   <div class="tile"><div class="tl">Coupling, strong (●) only</div><div class="tv">${cap(r.strong.verdict)}</div><div class="ts">${verdictSub(r.strong,'strong ')}</div></div>
+   <div class="tile"><div class="tl">Coupling, counting ○ and △ too</div><div class="tv">${cap(r.all.verdict)}</div><div class="ts">${verdictSub(r.all,'')}</div></div>`;
+  const dg=$('dgm');dg.style.setProperty('--dgn',m);
+  let h='<div class="dh corner"><span>needs ↓<br>characteristics →</span></div><div class="sph"></div>';
+  r.cols.forEach((j,b)=>{const hh=X[j];const pcj=r.perCol[b];h+=`<div class="dh" data-tip="${esc(hh.id+' · '+hh.name+'\n'+rankOf(j)+' · '+pc(pcj.total?pcj.outside/pcj.total:0)+' of its weight outside '+blockLabel(r,r.colBlock[j]))}"><span class="vt"><b>${esc(hh.id)}</b> ${esc(shortName(hh))}</span></div>`;});
+  r.rows.forEach((i,a)=>{const w=N[i];const pri=r.perRow[a];
+    h+=`<div class="dl" data-tip="${esc(w.id+' · '+w.need+'\nimportance '+w.importance+' · '+pc(pri.total?pri.outside/pri.total:0)+' of its relationships outside '+blockLabel(r,r.rowBlock[i]))}"><b>${esc(w.id)}</b><span>${esc(w.short)}</span></div><div class="sp"></div>`;
+    r.cols.forEach(j=>{const hh=X[j];const v=rel(w.id,hh.id);const out=v&&r.rowBlock[i]!==r.colBlock[j];
+      h+=`<div class="dc${out?' out':''}" data-v="${v}" data-tip="${esc(w.id+' × '+hh.id+': '+WORD[v]+(out?' · outside its block':'')+'\n'+w.short+' ← '+hh.name)}">${P.disp==='sym'?SYM[v]:(v||'')}</div>`;});});
+  dg.innerHTML=h;
+  const cs=getComputedStyle(dg);const px=v=>parseFloat(cs.getPropertyValue(v))||0;const Lw=px('--dgl'),Sw=px('--dgs'),Cw=px('--dgc'),Hh=px('--dgh');const X0=Lw+Sw;
+  let ov=`<svg class="dline" style="left:${X0}px;top:${Hh}px;width:${m*Cw}px;height:${n*Cw}px" viewBox="0 0 ${m*Cw} ${n*Cw}" aria-hidden="true"><line x1="0" y1="0" x2="${m*Cw}" y2="${n*Cw}"/></svg>`;
+  r.blocks.rowCuts.forEach((a0,bi)=>{const a1=r.blocks.rowCuts[bi+1]??n,b0=r.blocks.colCuts[bi],b1=r.blocks.colCuts[bi+1]??m;
+    ov+=`<div class="blk" style="left:${X0+b0*Cw}px;top:${Hh+a0*Cw}px;width:${(b1-b0)*Cw}px;height:${(a1-a0)*Cw}px"></div>`;
+    ov+=`<div class="spine" style="left:${Lw+2}px;top:${Hh+a0*Cw+2}px;width:${Sw-4}px;height:${(a1-a0)*Cw-4}px" title="${esc(blockLabel(r,bi))}"><span>B${bi+1}</span></div>`;});
+  dg.insertAdjacentHTML('beforeend',ov);
+  $('dg-bkl').innerHTML=r.blocks.rowCuts.map((a0,bi)=>`<b>B${bi+1}</b>${esc(r.names[bi])} (${r.blocks.sizes[bi][0]} needs × ${r.blocks.sizes[bi][1]})`).join(' &nbsp;·&nbsp; ');
+  const blocksHtml=r.blocks.rowCuts.map((a0,bi)=>{const a1=r.blocks.rowCuts[bi+1]??n,b0=r.blocks.colCuts[bi],b1=r.blocks.colCuts[bi+1]??m;
+    const R=r.rows.slice(a0,a1),Cc=r.cols.slice(b0,b1);
+    let inside=0,tot=0;R.forEach(i=>{tot+=r.rowSum[i];Cc.forEach(j=>{inside+=r.mat[i][j];});});
+    return `<div class="bk"><h3>${esc(blockLabel(r,bi))}<small>${R.length} need${R.length===1?'':'s'} · ${Cc.length} characteristic${Cc.length===1?'':'s'} · ${pc(tot?inside/tot:0)} of these needs' relationships are inside the block</small></h3>
+      <div class="bk2"><ul class="ls">${R.map(i=>`<li><span class="k">${esc(N[i].id)}</span><span class="t">${esc(N[i].short)}</span><span class="v">imp ${N[i].importance}</span></li>`).join('')}</ul>
+      <ul class="ls">${Cc.map(j=>`<li><span class="k">${esc(X[j].id)}</span><span class="t">${esc(shortName(X[j]))}</span><span class="v">${rankOf(j)}</span></li>`).join('')}</ul></div></div>`;}).join('');
+  $('dg-blocks').innerHTML=`<h2>The blocks <small>in diagonal order</small></h2>${blocksHtml}`;
+  const share=x=>x.total?x.outside/x.total:0;
+  const colsX=r.perCol.filter(x=>share(x)>=0.25).sort((a,b)=>share(b)-share(a));
+  const rowsX=r.perRow.filter(x=>share(x)>=0.25).sort((a,b)=>share(b)-share(a));
+  const others=(bl,own)=>bl.filter(b=>b!==own).map(b=>'B'+(b+1)).join(', ');
+  const noStrongW=N.filter(w=>!X.some(hh=>rel(w.id,hh.id)===9)).map(w=>w.id);
+  const noStrongH=X.filter(hh=>!N.some(w=>rel(w.id,hh.id)===9)).map(hh=>hh.id);
+  const emptyW=N.filter(w=>!X.some(hh=>rel(w.id,hh.id))).map(w=>w.id);
+  const emptyH=X.filter(hh=>!N.some(w=>rel(w.id,hh.id))).map(hh=>hh.id);
+  const cutList=r.all.cut.slice().sort((a,b)=>b.v-a.v||a.i-b.i);
+  $('dg-couplers').innerHTML=`<h2>What crosses the blocks</h2>
+    <p class="h"><b>Characteristics serving several blocks</b> <span class="muted">(a quarter or more of their weight outside their own block)</span></p>
+    <ul class="ls">${colsX.map(x=>`<li><span class="k">${esc(X[x.j].id)}</span><span class="t">${esc(shortName(X[x.j]))}</span><span class="v">${pc(share(x))} outside B${r.colBlock[x.j]+1} · also ${others(x.blocks,r.colBlock[x.j])}</span></li>`).join('')||'<li>None.</li>'}</ul>
+    <p class="h"><b>Needs that depend on several blocks</b></p>
+    <ul class="ls">${rowsX.map(x=>`<li><span class="k">${esc(N[x.i].id)}</span><span class="t">${esc(N[x.i].short)}</span><span class="v">${pc(share(x))} outside B${r.rowBlock[x.i]+1} · also ${others(x.blocks,r.rowBlock[x.i])}</span></li>`).join('')||'<li>None.</li>'}</ul>
+    <p class="h"><b>Row and column checks</b></p>
+    <p class="muted">${emptyW.length?`Needs with no relationship at all (unaddressed): ${emptyW.join(', ')}. `:''}${emptyH.length?`Characteristics driving nothing (unneeded?): ${emptyH.join(', ')}. `:''}${noStrongW.length?`No strong (●) driver: ${noStrongW.join(', ')}. `:'Every need has a strong driver. '}${noStrongH.length?`Strongly driving nothing: ${noStrongH.join(', ')}.`:'Every characteristic drives something strongly.'}</p>
+    <p class="h"><b>Ties to cut for a clean build order</b> <span class="muted">(counting all relationships; the smaller side of the diagonal)</span></p>
+    <ul class="ls">${cutList.map(t=>`<li><span class="k">${esc(N[t.i].id)}</span><span class="t">${esc(N[t.i].short)} ← ${esc(shortName(X[t.j]))}</span><span class="v">${esc(X[t.j].id)} · ${SYM[t.v]} ${t.v} · B${r.rowBlock[t.i]+1} ← B${r.colBlock[t.j]+1}</span></li>`).join('')||'<li>None: the blocks are already in a clean order.</li>'}</ul>`;
+}
+function rebuildHouse(){setLists();build();if(selected){if(selected.type==='how'){const j=HOWS.findIndex(x=>x.id===selected.id);if(j>=0)colEls[j].forEach(el=>el.classList.add('sel'));}else{const i=WHATS.findIndex(x=>x.id===selected.id);if(i>=0)rowEls[i].forEach(el=>el.classList.add('sel'));}}update();fitHouse();}
+function applyDiag(){const r=(diagLast&&!diagDirty)?diagLast:diagResult();P.order={rows:r.rowIds,cols:r.colIds,rowCuts:r.blocks.rowCuts,colCuts:r.blocks.colCuts,k:r.k,names:r.names};save();rebuildHouse();toast(`House reordered: ${r.k} blocks along the diagonal`);}
+$('ord-orig').addEventListener('click',()=>{if(!P.order)return;P.order=null;save();rebuildHouse();toast('Back to the listed order');});
+$('ord-diag').addEventListener('click',()=>{if(P.order)return;if(HOUSE.needs.length<2||HOUSE.characteristics.length<2){toast('Needs at least two needs and two characteristics');return;}applyDiag();});
+$('dg-apply').addEventListener('click',()=>{applyDiag();showView('house');try{history.replaceState(null,'','#house');}catch(err){}});
+$('dg-all').addEventListener('click',()=>{P.dgUse='all';save();renderDiag();});
+$('dg-strong').addEventListener('click',()=>{P.dgUse='strong';save();renderDiag();});
+$('dg-k').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;P.dgK=+b.dataset.k;save();renderDiag();});
+
+// ---------- the Input tab: load, save, edit the lists ----------
+function msg(text,cls){const el=$('in-msg');el.textContent=text;el.className='msg'+(cls?' '+cls:'');}
+function loadFromObject(obj,label){
+  const r=H.normalize(obj);
+  if(r.errors.length){msg('Not loaded. '+r.errors.join(' '),'err');return false;}
+  setHouse(r.house);
+  msg((label||'Loaded')+': '+r.house.needs.length+' needs, '+r.house.characteristics.length+' characteristics, '+Object.keys(r.house.roof).length+' roof pairs, '+Object.keys(r.house.items).length+' work items.'+(r.warnings.length?'\nWarnings: '+r.warnings.join(' '):''),r.warnings.length?'warn':'ok');
+  return true;
+}
+$('in-sample').addEventListener('click',()=>{if(window.HOQ_SAMPLE)loadFromObject(clone(window.HOQ_SAMPLE),'Sample loaded');else msg('sample-house.js is missing next to this page.','err');});
+$('in-empty').addEventListener('click',()=>{const e=H.blank();e.needs=[{id:'W1',need:'First need',short:'First need',source:'',importance:3,today:1,goal:5,links:'',why:''}];e.characteristics=[{id:'H1',name:'First characteristic',short:'First characteristic',unit:'',direction:'↑',target:'',targetShort:'',today:'',todayShort:'',links:'',difficulty:3,gate:false}];loadFromObject(e,'Empty house started');showView('input');});
+$('in-load-paste').addEventListener('click',()=>{let obj;try{obj=JSON.parse($('in-paste').value);}catch(e){msg('That is not valid JSON: '+e.message,'err');return;}if(loadFromObject(obj,'Pasted JSON loaded'))$('in-paste').value='';});
+function readFiles(files){
+  const list=[...files];if(!list.length)return;
+  const tables={};let jsonObj=null;let pending=list.length;const names=[];
+  list.forEach(f=>{const rd=new FileReader();rd.onload=()=>{const text=String(rd.result);names.push(f.name);
+    if(/\.json$/i.test(f.name)){try{jsonObj=JSON.parse(text);}catch(e){msg(f.name+' is not valid JSON: '+e.message,'err');}}
+    else{const rows=H.parseCSV(text);const kind=H.classifyCSV(rows,f.name);if(kind)tables[kind]=rows;else msg('Could not tell what '+f.name+' is (needs, characteristics, matrix, roof or items). Check its header row.','err');}
+    if(--pending===0){
+      if(jsonObj){loadFromObject(jsonObj,'Loaded '+names.filter(n=>/\.json$/i.test(n)).join(', '));}
+      if(Object.keys(tables).length){const base=jsonObj?HOUSE:HOUSE;const r=H.fromCSV(tables,Object.assign(clone(base),{needs:tables.needs?[]:base.needs,characteristics:tables.characteristics?[]:base.characteristics,relationships:tables.matrix?{}:base.relationships,roof:tables.roof?{}:base.roof,items:tables.items?{}:base.items}));
+        if(r.errors.length){msg('CSV not loaded. '+r.errors.join(' '),'err');return;}
+        setHouse(r.house);msg('Loaded '+Object.keys(tables).join(', ')+' from CSV.'+(r.warnings.length?'\nWarnings: '+r.warnings.join(' '):''),r.warnings.length?'warn':'ok');}
+    }};rd.readAsText(f);});
+}
+$('in-file').addEventListener('change',e=>{readFiles(e.target.files);e.target.value='';});
+const drop=$('in-drop');
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('on');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('on');}));
+drop.addEventListener('drop',e=>{readFiles(e.dataTransfer.files);});
+function dl(name,text,type){const b=new Blob([text],{type:type||'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
+const slug=()=>(HOUSE.title||'house').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'house';
+const today=()=>new Date().toISOString().slice(0,10);
+$('out-json').addEventListener('click',()=>dl(slug()+'.json',JSON.stringify(HOUSE,null,2),'application/json'));
+$('out-tsv').addEventListener('click',()=>dl(slug()+'-'+today()+'.tsv',tsvText(),'text/tab-separated-values'));
+$('out-csv').addEventListener('click',()=>{const files=H.toCSV(HOUSE);let i=0;Object.keys(files).forEach(f=>{setTimeout(()=>dl(f,files[f],'text/csv'),i++*300);});toast('Five CSV files on their way');});
+$('in-reset').addEventListener('click',()=>{if(!HOUSE0)return;if(!confirm('Throw away every edit since the file was loaded?'))return;setHouse(clone(HOUSE0));toast('Back to the loaded file');});
+
+const NEED_COLS=[['id','Id','idf'],['need','Need (WHAT)','txt'],['short','Short label','txt'],['source','Source','txt'],['importance','Imp.','n2'],['today','Today','n2'],['goal','Goal','n2'],['links','Links','txt'],['why','Why it matters','area']];
+const HOW_COLS=[['id','Id','idf'],['name','Characteristic (HOW)','txt'],['short','Short label','txt'],['unit','Unit','txt'],['direction','Dir.','dir'],['target','Target','txt'],['targetShort','Target, short','txt'],['today','Today','txt'],['todayShort','Today, short','txt'],['links','Links','txt'],['difficulty','Diff.','n2'],['gate','Gate','chk']];
+const ITEM_COLS=[['key','Key','idf'],['title','Title','txt'],['status','Status','txt'],['due','Due (YYYY-MM-DD)','txt'],['effort','Effort','n2'],['tested','Tested','tested'],['note','Note','area']];
+function fieldHtml(kind,i,f,type,v){
+  const d=`data-kind="${kind}" data-i="${i}" data-f="${f}"`;
+  if(type==='area')return `<textarea ${d}>${esc(v)}</textarea>`;
+  if(type==='n2')return `<input class="n2" type="number" min="1" max="5" step="1" ${d} value="${esc(v)}">`;
+  if(type==='idf')return `<input class="idf" ${d} value="${esc(v)}">`;
+  if(type==='dir')return `<select ${d}>${H.DIRS.map(x=>`<option value="${x}"${v===x?' selected':''}>${x}</option>`).join('')}</select>`;
+  if(type==='chk')return `<input type="checkbox" ${d}${v?' checked':''}>`;
+  if(type==='tested')return `<select ${d}><option value="">—</option>${Object.keys(H.TESTED_CLASSES).map(x=>`<option value="${x}"${v===x?' selected':''}>${H.TESTED_CLASSES[x]}</option>`).join('')}</select>`;
+  return `<input ${d} value="${esc(v)}">`;
+}
+function renderInput(){
+  $('m-title').value=HOUSE.title;$('m-sub').value=HOUSE.subtitle;$('m-date').value=HOUSE.meta.date||'';$('m-author').value=HOUSE.meta.author||'';$('m-today').value=HOUSE.meta.todayLabel||'';
+  $('m-scale').value=Object.keys(HOUSE.statusScale).map(k=>k+'='+HOUSE.statusScale[k]).join(', ');
+  $('ed-needs').innerHTML=`<thead><tr>${NEED_COLS.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>${HOUSE.needs.map((w,i)=>`<tr>${NEED_COLS.map(c=>`<td>${fieldHtml('need',i,c[0],c[2],w[c[0]])}</td>`).join('')}<td><button class="del" data-del="need" data-i="${i}" title="Remove">✕</button></td></tr>`).join('')}</tbody>`;
+  $('ed-hows').innerHTML=`<thead><tr>${HOW_COLS.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>${HOUSE.characteristics.map((h,i)=>`<tr>${HOW_COLS.map(c=>`<td>${fieldHtml('how',i,c[0],c[2],h[c[0]])}</td>`).join('')}<td><button class="del" data-del="how" data-i="${i}" title="Remove">✕</button></td></tr>`).join('')}</tbody>`;
+  const ik=Object.keys(HOUSE.items);
+  $('ed-items').innerHTML=`<thead><tr>${ITEM_COLS.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>${ik.map((k,i)=>{const it=HOUSE.items[k];return `<tr>${ITEM_COLS.map(c=>`<td>${fieldHtml('item',i,c[0],c[2],c[0]==='key'?k:it[c[0]])}</td>`).join('')}<td><button class="del" data-del="item" data-i="${i}" title="Remove">✕</button></td></tr>`;}).join('')}</tbody>`;
+}
+let editT=0;
+function afterListEdit(){clearTimeout(editT);editT=setTimeout(()=>{reindex();setLists();build();update();fillAdd();renderHeader();save();},250);}
+function renameNeed(oldId,newId){if(!newId||oldId===newId)return;if(HOUSE.needs.some(w=>w.id===newId)||HOUSE.characteristics.some(h=>h.id===newId)){toast('Id '+newId+' is already used');return;}const w=HOUSE.needs.find(x=>x.id===oldId);w.id=newId;HOUSE.relationships[newId]=HOUSE.relationships[oldId]||{};delete HOUSE.relationships[oldId];}
+function renameHow(oldId,newId){if(!newId||oldId===newId)return;if(HOUSE.needs.some(w=>w.id===newId)||HOUSE.characteristics.some(h=>h.id===newId)){toast('Id '+newId+' is already used');return;}const h=HOUSE.characteristics.find(x=>x.id===oldId);h.id=newId;Object.keys(HOUSE.relationships).forEach(w=>{const r=HOUSE.relationships[w];if(oldId in r){r[newId]=r[oldId];delete r[oldId];}});const roof={};Object.keys(HOUSE.roof).forEach(k=>{const [a,b]=k.split('|');roof[(a===oldId?newId:a)+'|'+(b===oldId?newId:b)]=HOUSE.roof[k];});HOUSE.roof=roof;reindex();const fixed={};Object.keys(HOUSE.roof).forEach(k=>{const [a,b]=k.split('|');fixed[canon(a,b)]=HOUSE.roof[k];});HOUSE.roof=fixed;}
+document.getElementById('view-input').addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.meta){const m=t.dataset.meta;if(m==='title')HOUSE.title=t.value;else if(m==='subtitle')HOUSE.subtitle=t.value;else if(m==='statusScale'){const sc={};t.value.split(',').forEach(p=>{const [k,v]=p.split('=');if(k&&k.trim())sc[k.trim()]=Math.min(1,Math.max(0,parseFloat(v)||0));});if(Object.keys(sc).length)HOUSE.statusScale=sc;}else{HOUSE.meta[m.replace('meta.','')]=t.value;}renderHeader();save();if(m==='statusScale'||m==='meta.date'||m==='meta.todayLabel')afterListEdit();return;}
+  const kind=t.dataset.kind;if(!kind)return;const i=+t.dataset.i,f=t.dataset.f;
+  if(kind==='need'){const w=HOUSE.needs[i];if(!w)return;if(f==='id')return;if(t.type==='number'){const v=parseInt(t.value,10);if(isNaN(v))return;w[f]=Math.min(5,Math.max(1,v));}else w[f]=t.value;}
+  else if(kind==='how'){const h=HOUSE.characteristics[i];if(!h)return;if(f==='id')return;if(t.type==='checkbox')h[f]=t.checked;else if(t.type==='number'){const v=parseInt(t.value,10);if(isNaN(v))return;h[f]=Math.min(5,Math.max(1,v));}else h[f]=t.value;}
+  else if(kind==='item'){const k=Object.keys(HOUSE.items)[i];if(!k)return;if(f==='key')return;HOUSE.items[k][f]=t.value;}
+  afterListEdit();
+});
+document.getElementById('view-input').addEventListener('change',e=>{
+  const t=e.target;const kind=t.dataset.kind;if(!kind||t.dataset.f!=='id'&&t.dataset.f!=='key')return;const i=+t.dataset.i;const v=t.value.trim();
+  if(kind==='need'){renameNeed(HOUSE.needs[i].id,v);}
+  else if(kind==='how'){renameHow(HOUSE.characteristics[i].id,v);}
+  else if(kind==='item'){const k=Object.keys(HOUSE.items)[i];if(v&&v!==k&&!HOUSE.items[v]){const items={};Object.keys(HOUSE.items).forEach(x=>{items[x===k?v:x]=HOUSE.items[x];});HOUSE.items=items;}}
+  renderInput();afterListEdit();
+});
+document.getElementById('view-input').addEventListener('click',e=>{
+  const b=e.target.closest('[data-del]');if(!b)return;const i=+b.dataset.i;
+  if(b.dataset.del==='need'){const w=HOUSE.needs[i];if(!confirm('Remove '+w.id+' and its row of relationships?'))return;HOUSE.needs.splice(i,1);delete HOUSE.relationships[w.id];}
+  else if(b.dataset.del==='how'){const h=HOUSE.characteristics[i];if(!confirm('Remove '+h.id+', its column and its roof pairs?'))return;HOUSE.characteristics.splice(i,1);Object.values(HOUSE.relationships).forEach(r=>{delete r[h.id];});Object.keys(HOUSE.roof).forEach(k=>{if(k.split('|').includes(h.id))delete HOUSE.roof[k];});}
+  else if(b.dataset.del==='item'){const k=Object.keys(HOUSE.items)[i];delete HOUSE.items[k];}
+  P.order=null;selected=null;renderInput();afterListEdit();
+});
+function nextId(prefix,list){let n=list.length+1;while(list.some(x=>x.id===prefix+n)||HOUSE.needs.some(x=>x.id===prefix+n)||HOUSE.characteristics.some(x=>x.id===prefix+n))n++;return prefix+n;}
+$('add-need').addEventListener('click',()=>{const id=nextId('W',HOUSE.needs);HOUSE.needs.push({id,need:'',short:'',source:'',importance:3,today:1,goal:5,links:'',why:''});HOUSE.relationships[id]={};P.order=null;renderInput();afterListEdit();});
+$('add-how').addEventListener('click',()=>{const id=nextId('H',HOUSE.characteristics);HOUSE.characteristics.push({id,name:'',short:'',unit:'',direction:'↑',target:'',targetShort:'',today:'',todayShort:'',links:'',difficulty:3,gate:false});P.order=null;renderInput();afterListEdit();});
+$('add-item').addEventListener('click',()=>{let n=Object.keys(HOUSE.items).length+1;while(HOUSE.items['ITEM-'+n])n++;HOUSE.items['ITEM-'+n]={title:'',status:'To Do',due:'',effort:'',tested:'',note:''};renderInput();afterListEdit();});
+
+// ---------- views, tooltip, toast, fit ----------
+const VIEWS=['input','house','diag','items','needs','hows','roof','legend'];
+function showView(v){
+  if(!VIEWS.includes(v))v='house';
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.view===v));
+  VIEWS.forEach(x=>{$('view-'+x).hidden=x!==v;});
+  if(v==='house')requestAnimationFrame(fitHouse);
+  if(v==='diag'&&diagDirty)renderDiag();
+}
+document.querySelector('.tabs').addEventListener('click',e=>{const t=e.target.closest('.tab');if(!t)return;showView(t.dataset.view);try{history.replaceState(null,'','#'+t.dataset.view);}catch(err){}});
+window.addEventListener('hashchange',()=>showView(location.hash.replace('#','')));
+const tip=$('tip');
+function showTip(e,text){tip.textContent='';String(text).split('\n').forEach((line,k)=>{if(k)tip.appendChild(document.createElement('br'));tip.appendChild(document.createTextNode(line));});tip.classList.add('on');moveTip(e);}
+function moveTip(e){const pad=12;let x=e.clientX+pad,y=e.clientY+pad;const r=tip.getBoundingClientRect();if(x+r.width>window.innerWidth-8)x=e.clientX-r.width-pad;if(y+r.height>window.innerHeight-8)y=e.clientY-r.height-pad;tip.style.left=Math.max(4,x)+'px';tip.style.top=Math.max(4,y)+'px';}
+function hideTip(){tip.classList.remove('on');}
+document.addEventListener('mouseover',e=>{const t=e.target.closest('[data-tip]');if(t&&t.dataset.tip)showTip(e,t.dataset.tip);});
+document.addEventListener('mousemove',e=>{if(tip.classList.contains('on'))moveTip(e);});
+document.addEventListener('mouseout',e=>{const t=e.target.closest('[data-tip]');if(t&&!(e.relatedTarget&&t.contains(e.relatedTarget)))hideTip();});
+let toastT=0;
+function toast(m){const el=$('toast');el.textContent=m;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on'),2200);}
+function fitHouse(){
+  const house=grid.closest('.house');if(!house)return;
+  const avail=house.clientWidth-26;const n=HOWS.length||1;const cs=getComputedStyle(grid);const px=v=>parseFloat(v)||0;
+  const narrow=window.matchMedia('(max-width:720px)').matches;
+  const other=['--w-id','--w-src','--w-imp','--w-cg','--w-ratio','--w-adj','--w-link'].reduce((s,k)=>s+px(cs.getPropertyValue(k)),0);
+  const needBase=narrow?150:250;const gaps=n+8+1;
+  let cw=36,need=needBase;let extra=avail-(other+needBase+n*36+gaps);
+  if(extra>0){const add=Math.min(12,Math.floor(extra/n));cw=36+add;extra-=add*n;need=needBase+Math.min(Math.max(0,extra),narrow?0:260);}
+  grid.style.setProperty('--cw',cw+'px');grid.style.setProperty('--w-need',need+'px');
+  renderRoof();
+}
+
+// ---------- boot ----------
+loadPrefs();
+if(loadStored()){reindex();setLists();build();update();renderInput();fillAdd();renderHeader();}
+else if(window.HOQ_SAMPLE){loadFromObject(clone(window.HOQ_SAMPLE),'Sample loaded');}
+else{const e=H.blank();e.needs=[{id:'W1',need:'First need',short:'First need',source:'',importance:3,today:1,goal:5,links:'',why:''}];e.characteristics=[{id:'H1',name:'First characteristic',short:'First characteristic',unit:'',direction:'↑',target:'',targetShort:'',today:'',todayShort:'',links:'',difficulty:3,gate:false}];loadFromObject(e,'Empty house');}
+showView(location.hash.replace('#',''));
+fitHouse();
+let rz=0;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(fitHouse,80);});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitHouse);
+})();
+</script>
+</body>
+</html>

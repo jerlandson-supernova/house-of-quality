@@ -1,0 +1,9 @@
+id,need,short,source,importance,today,goal,links,why
+W1,Coffee is still hot two hours after filling,Hot for two hours,Commuter survey,5,3,5,"MUG-1, MUG-2",The most common complaint about the current prototype.
+W2,"Nothing leaks into a bag, even lying on its side",Never leaks,Returns data,5,2,5,MUG-3,Leaks are the top reason for returns.
+W3,Fits the cup holder of a small car,Fits a cup holder,Dealer feedback,3,4,5,MUG-4,
+W4,Can be opened and closed with one hand while driving,One-handed lid,Commuter survey,4,2,4,MUG-5,
+W5,Does not burn the hand that holds it,Cool to hold,Safety review,5,4,5,MUG-2,
+W6,Comes apart and goes in the dishwasher,Easy to clean,Customer interviews,3,2,4,MUG-6,
+W7,Survives being dropped on concrete,Survives a drop,Warranty claims,3,3,4,MUG-7,
+W8,Costs no more than the leading brand,Affordable,Pricing,4,3,4,MUG-8,

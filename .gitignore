@@ -1,0 +1,7 @@
+*.xlsx
+*.tsv
+!examples/**/*.tsv
+pylib/
+node_modules/
+__pycache__/
+.DS_Store
