@@ -55,10 +55,20 @@ button{font:inherit;color:inherit}
 .eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
 .top h1{font-size:clamp(26px,3.4vw,38px);font-weight:700;letter-spacing:-.01em;line-height:1.1}
 .lede{max-width:68ch;margin:8px 0 0;color:var(--muted)}
-.tabs{display:flex;flex-wrap:wrap;gap:4px}
+.hdr-ctl{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.hdr-row{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:flex-end}
+.modes{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface)}
+.mode{border:0;background:transparent;padding:7px 18px;cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:14px;color:var(--muted)}
+.mode+.mode{border-left:1px solid var(--line)}
+.mode[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.terms{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.terms select{font:13px var(--f-body);border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);padding:4px 6px}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
+.tabs[hidden]{display:none}
 .tab{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:13.5px;color:var(--muted)}
 .tab[aria-selected="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .view{padding-top:18px}
+@media (max-width:900px){.hdr-ctl{align-items:flex-start}.hdr-row,.tabs{justify-content:flex-start}}
 
 /* toolbar */
 .bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:14px}
@@ -301,6 +311,20 @@ button{font:inherit;color:inherit}
 .tk .gt{margin:8px 0 0;padding:0;list-style:none;font-size:13px}.tk .gt li{padding:7px 0;border-top:1px solid var(--line-2);line-height:1.4}.tk .gt li:first-child{border-top:0}.tk .gt b{color:var(--gate)}
 .tk .ev{margin:10px 0 0;padding-left:18px;font-size:13px;color:var(--muted)}.tk .ev li{margin:3px 0}
 
+/* daily screen */
+.dy-strip{font-size:13.5px;padding:6px 0;border-radius:8px}.dy-strip.on{outline:2px dashed var(--accent);background:var(--accent-soft)}.dy-strip b{font-weight:600}.dy-strip .muted{color:var(--muted)}
+.dy{grid-template-columns:repeat(auto-fit,minmax(340px,1fr));margin-top:0}
+.dy .path li.next{font-weight:600}.dy .path li.next::marker{color:var(--accent)}.dy .path li.next b{color:var(--accent)}
+.dy .path li.done{color:var(--muted)}.dy .path li.done b{color:var(--muted)}
+.dy .gt li .st{display:inline-block;font:600 10px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:4px 7px;margin-left:6px;vertical-align:1px;background:var(--surface-2);color:var(--muted)}
+.dy .gt li.clear b{color:var(--good)}.dy .gt li.clear .st{background:var(--good);color:#fff}
+.dy .gt li.blocked .st{background:var(--gate);color:var(--gate-fg)}
+.dy .ls li{flex-wrap:wrap}.dy .ls li .t{flex:1 1 160px}.dy .ls li .v{color:var(--fg);flex:0 1 auto}
+.chg{color:var(--warn);font-size:11px;white-space:nowrap;font-family:var(--f-body)}
+.tbl td .chg{display:block}
+details.all{margin-top:18px}details.all summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:15px;margin-bottom:12px;color:var(--muted)}details.all[open] summary{color:var(--fg)}
+.due{font-family:var(--f-mono);font-size:12px;white-space:nowrap}.due.late{color:var(--gate);font-weight:600}
+
 /* input view */
 .in-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
 .drop{border:2px dashed var(--line);border-radius:8px;padding:18px;text-align:center;color:var(--muted);font-size:13.5px;margin:10px 0}
@@ -339,17 +363,41 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
     <h1 id="hdr-title">House of Quality</h1>
     <p class="lede" id="hdr-sub"></p>
   </div>
-  <nav class="tabs" role="tablist" aria-label="Views">
-    <button class="tab" role="tab" data-view="input" aria-selected="false">Input</button>
-    <button class="tab" role="tab" data-view="house" aria-selected="true">House</button>
-    <button class="tab" role="tab" data-view="diag" aria-selected="false">Diagonal</button>
-    <button class="tab" role="tab" data-view="items" aria-selected="false">Work items</button>
-    <button class="tab" role="tab" data-view="needs" aria-selected="false">Needs</button>
-    <button class="tab" role="tab" data-view="hows" aria-selected="false">Characteristics</button>
-    <button class="tab" role="tab" data-view="roof" aria-selected="false">Roof pairs</button>
-    <button class="tab" role="tab" data-view="legend" aria-selected="false">Legend</button>
-  </nav>
+  <div class="hdr-ctl">
+    <div class="hdr-row">
+      <div class="modes" role="group" aria-label="Screen">
+        <button class="mode" data-mode="daily" aria-pressed="true" data-t="screenDaily">Daily</button>
+        <button class="mode" data-mode="planning" aria-pressed="false" data-t="screenPlanning">Planning</button>
+      </div>
+      <label class="terms">Words <select id="terms" aria-label="Words"><option value="auto">Auto</option><option value="plain">Plain words</option><option value="qfd">QFD words</option></select></label>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Planning views" id="plan-tabs" hidden>
+      <button class="tab" role="tab" data-view="input" aria-selected="false">Input</button>
+      <button class="tab" role="tab" data-view="house" aria-selected="true" data-t="tabHouse">House</button>
+      <button class="tab" role="tab" data-view="diag" aria-selected="false" data-t="tabDiag">Diagonal</button>
+      <button class="tab" role="tab" data-view="needs" aria-selected="false">Needs</button>
+      <button class="tab" role="tab" data-view="hows" aria-selected="false" data-t="tabHows">Characteristics</button>
+      <button class="tab" role="tab" data-view="roof" aria-selected="false" data-t="tabRoof">Roof pairs</button>
+      <button class="tab" role="tab" data-view="legend" aria-selected="false" data-t="tabLegend">Legend</button>
+    </nav>
+  </div>
 </header>
+
+<section class="view tk" id="view-daily" hidden>
+  <div class="strip dy-strip" id="dy-strip"><span id="dy-asof"></span><span class="spacer"></span><label class="btn">Update statuses from a tracker export… <input type="file" id="dy-file" accept=".csv,.json" style="display:none"></label></div>
+  <div class="below dy">
+    <div class="panel" id="dy-gates"></div>
+    <div class="panel" id="dy-path"></div>
+    <div class="panel" id="dy-mismatch"></div>
+    <div class="panel" id="dy-overdue"></div>
+  </div>
+  <details class="all" id="dy-all"><summary data-t="allItems">All work items</summary>
+    <p style="max-width:84ch;color:var(--muted);margin:0 0 12px">Which work items carry the house, and how far they have come. Each characteristic's weighted importance is split over the items it links to, so an item's share is the part of the whole house it carries. Status, due date and effort come from the tracker or the file; a status is not a proof, so the table reads each one against your own test verdict and the date you tested it.</p>
+    <div class="tiles" id="tk-tiles"></div>
+    <div class="tbl-wrap"><table class="tbl" id="tbl-items"></table></div>
+    <p class="foot-note" id="tk-foot"></p>
+  </details>
+</section>
 
 <section class="view" id="view-input" hidden>
   <div class="in-grid">
@@ -360,7 +408,7 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
         <button class="btn" id="in-empty">Start empty</button>
         <label class="btn">Open files… <input type="file" id="in-file" multiple accept=".json,.csv,.txt" style="display:none"></label>
       </div>
-      <div class="drop" id="in-drop">Drop a house <b>.json</b> here, or the five CSV files (<b>needs, characteristics, matrix, roof, items</b>). Any subset works: the rest keeps what is loaded.</div>
+      <div class="drop" id="in-drop">Drop a house <b>.json</b> here, or the five CSV files (<b>needs, characteristics, matrix, roof, items</b>). Any subset works: the rest keeps what is loaded. A tracker export (a <b>Jira CSV</b>, any file with an "Issue key" column) merges instead: statuses, due dates and points are refreshed, your verdicts and notes are kept.</div>
       <textarea class="paste" id="in-paste" placeholder='Or paste a house as JSON: {"title":"…","needs":[…],"characteristics":[…],"relationships":{…}}'></textarea>
       <div class="in-row"><button class="btn" id="in-load-paste">Load the pasted JSON</button><span class="hint">Formats: <a href="../docs/data-format.md">docs/data-format.md</a></span></div>
       <div class="msg" id="in-msg"></div>
@@ -399,14 +447,14 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
     <div class="in-row"><button class="btn" id="add-need">Add a need</button><span class="hint">Importance, today and goal are 1 to 5. Links name work items (e.g. MUG-3, or "KAN-62 to 68"). The relationships are set by clicking in the House.</span></div>
   </div>
   <div class="panel" style="margin-top:16px">
-    <h2>Characteristics <small>the columns: measurable things the design must hit, with a unit, a direction and a target</small></h2>
+    <h2><span data-t="tabHows">Characteristics</span> <small>the columns: measurable things the design must hit, with a unit, a direction and a target</small></h2>
     <div class="ed-wrap"><table class="ed" id="ed-hows"></table></div>
     <div class="in-row"><button class="btn" id="add-how">Add a characteristic</button><span class="hint">Gate: must pass before anything ships; it keeps its weight but is not ranked against the others. Difficulty is 1 to 5.</span></div>
   </div>
   <div class="panel" style="margin-top:16px">
-    <h2>Work items <small>optional: the tickets or tasks that the links point at, with a status, due date, effort and your own test verdict</small></h2>
+    <h2>Work items <small>optional: the tickets or tasks that the links point at, with a status, due date and effort from the tracker, and your own test verdict with the date you tested it</small></h2>
     <div class="ed-wrap"><table class="ed" id="ed-items"></table></div>
-    <div class="in-row"><button class="btn" id="add-item">Add a work item</button><span class="hint">Tested: verified, partial, failed, not built or not retested. "Really done?" on the Work items tab reads the status against it.</span></div>
+    <div class="in-row"><button class="btn" id="add-item">Add a work item</button><span class="hint">Tested: verified, partial, fails or not built; retested = the date of that test. "Really done?" on Daily reads the status against it, and "changed since the test" appears when the tracker updated the item after that date.</span></div>
   </div>
 </section>
 
@@ -424,7 +472,7 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
         <button id="disp-num" aria-pressed="false">9 3 1</button>
       </div>
     </div>
-    <div class="seg">Roof
+    <div class="seg"><span data-t="roofSeg">Roof</span>
       <div class="opts" role="group" aria-label="Roof">
         <button id="roof-on" aria-pressed="true">Shown</button>
         <button id="roof-off" aria-pressed="false">Hidden</button>
@@ -433,7 +481,7 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
     <div class="seg">Order
       <div class="opts" role="group" aria-label="Row and column order">
         <button id="ord-orig" aria-pressed="true">As listed</button>
-        <button id="ord-diag" aria-pressed="false">Diagonal</button>
+        <button id="ord-diag" aria-pressed="false" data-t="ordDiag">Diagonal</button>
       </div>
     </div>
     <div class="seg">Rows and columns
@@ -459,7 +507,7 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
     <aside class="panel detail" id="detail" aria-live="polite"></aside>
     <div class="charts">
       <div class="panel">
-        <h2>Which characteristics carry the weight <small id="chart1-sub"></small></h2>
+        <h2><span data-t="chart1">Which characteristics carry the weight</span> <small id="chart1-sub"></small></h2>
         <div id="chart1"></div>
         <p class="axis">Bar length = Σ (need weight × relationship). Darker bars are the top five ranked characteristics; red bars are gates.</p>
       </div>
@@ -490,7 +538,7 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
   </div>
   <div class="tiles" id="dg-tiles"></div>
   <div class="dgwrap"><div class="dg" id="dgm" role="img" aria-label="The room with rows and columns in diagonal order"></div><p class="bkl" id="dg-bkl"></p></div>
-  <p class="foot-note">Same room, same ratings; only the order of the rows and columns has changed. Outlined blocks are the modules, the dashed line is the diagonal, and a dashed ring marks a relationship that sits outside its block. Hover a cell for the pair. Edit ratings in the House and this view recomputes.</p>
+  <p class="foot-note" data-t="dgFoot">Same room, same ratings; only the order of the rows and columns has changed. Outlined blocks are the modules, the dashed line is the diagonal, and a dashed ring marks a relationship that sits outside its block. Hover a cell for the pair. Edit ratings in the House and this view recomputes.</p>
   <div class="below">
     <div class="panel" id="dg-blocks"></div>
     <div class="panel" id="dg-couplers"></div>
@@ -502,7 +550,7 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
       <ul class="steps">
         <li><b>Blocks.</b> Groups of needs served by the same group of characteristics, with little outside the group: the natural modules of the design, and candidate owners.</li>
         <li><b>Couplings.</b> Relationships that no ordering brings to the diagonal: a characteristic that serves needs in several blocks, or a need that depends on several blocks. These are where one team's change moves another team's result.</li>
-        <li><b>Shape.</b> Axiomatic Design (Suh 1990) reads a design matrix by its shape. Diagonal is <i>uncoupled</i>: each need has its own characteristic. Triangular is <i>decoupled</i>: there is an order in which to settle the characteristics so that each need is met once and not revisited. Anything else is <i>coupled</i>, and the design iterates. <span id="dg-shape"></span></li>
+        <li><b>Shape.</b> Axiomatic Design (Suh 1990) reads a design matrix by its shape. Diagonal is <i data-t="uncoupled">uncoupled</i>: each need has its own characteristic. Triangular is <i data-t="decoupled">decoupled</i>: there is an order in which to settle the characteristics so that each need is met once and not revisited. Anything else is <i data-t="coupled">coupled</i>, and the design iterates. <span id="dg-shape"></span></li>
       </ul>
     </div>
     <div class="panel">
@@ -543,17 +591,6 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
   </div>
 </section>
 
-<section class="view tk" id="view-items" hidden>
-  <p style="max-width:84ch;color:var(--muted);margin:0 0 12px">Which work items carry the house, and how far they have come. Each characteristic's weighted importance is split over the items it links to, so an item's share is the part of the whole house it carries; the shares follow the weights and the cells live. Status, due date and effort are whatever you loaded; a status is not a proof, so the table also reads each status against your own test verdict.</p>
-  <div class="tiles" id="tk-tiles"></div>
-  <div class="below">
-    <div class="panel" id="tk-path"></div>
-    <div class="panel" id="tk-gates"></div>
-  </div>
-  <div class="tbl-wrap" style="margin-top:16px"><table class="tbl" id="tbl-items"></table></div>
-  <p class="foot-note" id="tk-foot"></p>
-</section>
-
 <section class="view" id="view-needs" hidden><div class="tbl-wrap"><table class="tbl" id="tbl-needs"></table></div></section>
 <section class="view" id="view-hows" hidden><div class="tbl-wrap"><table class="tbl" id="tbl-hows"></table></div></section>
 
@@ -580,21 +617,21 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
       <h2>What it is</h2>
       <p>A House of Quality (the first QFD matrix) links what the stakeholders need (WHATs, the rows) to the measurable characteristics of the design (HOWs, the columns), and shows which characteristics matter most. The method, step by step, is in <a href="../docs/method.md">docs/method.md</a>; every formula is in <a href="../docs/formulas.md">docs/formulas.md</a>.</p>
       <dl>
-        <dt>Left wall</dt><dd><span id="lg-n">n</span> needs, each with its source and an importance from 1 to 5.</dd>
-        <dt>Ceiling</dt><dd><span id="lg-m">m</span> characteristics with a unit and a direction of improvement.</dd>
-        <dt>Room</dt><dd>How strongly each characteristic drives each need.</dd>
-        <dt>Roof</dt><dd>How the characteristics help or fight each other. Each diamond sits where the diagonals from two columns meet.</dd>
-        <dt>Right wall</dt><dd>Today's score against the goal per need, giving an improvement ratio and an adjusted weight.</dd>
-        <dt>Basement</dt><dd>Target, today's state, weighted importance, relative share, must-pass gate, rank, difficulty and the links per characteristic.</dd>
-        <dt>Diagonal</dt><dd>The same room with its rows and columns reordered so the relationships gather along the diagonal: the modules of the design, and the couplings between them.</dd>
-        <dt>Work items</dt><dd>Which tickets or tasks carry the house, their status, due date and effort, and whether your own tests agree with the status.</dd>
+        <dt data-t="leftWall">Left wall</dt><dd><span id="lg-n">n</span> needs, each with its source and an importance from 1 to 5.</dd>
+        <dt data-t="ceiling">Ceiling</dt><dd><span id="lg-m">m</span> characteristics with a unit and a direction of improvement.</dd>
+        <dt data-t="room">Room</dt><dd>How strongly each characteristic drives each need.</dd>
+        <dt data-t="roof">Roof</dt><dd>How the characteristics help or fight each other. Each diamond sits where the diagonals from two columns meet.</dd>
+        <dt data-t="rightWall">Right wall</dt><dd>Today's score against the goal per need, giving an improvement ratio and an adjusted weight.</dd>
+        <dt data-t="basement">Basement</dt><dd>Target, today's state, weighted importance, relative share, must-pass gate, rank, difficulty and the links per characteristic.</dd>
+        <dt data-t="tabDiag">Diagonal</dt><dd>The same room with its rows and columns reordered so the relationships gather along the diagonal: the modules of the design, and the couplings between them.</dd>
+        <dt>Daily</dt><dd>The screen for every day: what blocks go-live (the gates and their items), what to do next (the critical path), where the tracker and your tests disagree, what is overdue, and every work item with its status, your verdict (Verified / Partial / Fails / Not built) and the date you last tested it. Planning holds the House, the Diagonal and the lists for the weekly read.</dd>
       </dl>
     </div>
     <div class="panel">
       <h2>Scoring</h2>
       <dl>
         <dt>Importance</dt><dd>5 essential, 4 very important, 3 important, 2 nice to have, 1 minor. Set with the stakeholders; record who set it and when.</dd>
-        <dt>Must-pass gate</dt><dd>A characteristic that must pass before anything ships, whatever its weight. It keeps its weighted importance in the room but is never ranked against the feature characteristics.</dd>
+        <dt data-t="gateCell">Must-pass gate</dt><dd>A characteristic that must pass before anything ships, whatever its weight. It keeps its weighted importance in the room but is never ranked against the feature characteristics.</dd>
         <dt><span class="key k9">●</span>9</dt><dd>Strong: this characteristic decides whether the need is met.</dd>
         <dt><span class="key k3">○</span>3</dt><dd>Medium: clear influence.</dd>
         <dt><span class="key k1">△</span>1</dt><dd>Weak: some influence.</dd>
@@ -621,6 +658,8 @@ textarea.paste{width:100%;min-height:120px;font:12px var(--f-mono);border:1px so
         <li>Download SVG draws the house as a picture, in the order and reduction shown; the same drawing comes from the command line and the MCP server. Download Markdown (Input tab) writes the whole house as a report an agent or a person can read.</li>
         <li>An agent connected to the MCP server proposes room cells and roof pairs; they show as ? in the House and wait on the Input tab until you confirm or reject them. Every value you set on the page is recorded with your name (the author field) in the file's provenance.</li>
         <li>Copy as TSV puts the whole house on the clipboard for Excel, with the export date and the scoring mode in its first row: send the dated TSV around as the version of record. Page edits stay in this browser.</li>
+        <li>Daily / Planning switches between the screen for every day and the weekly QFD read. Words: Auto shows plain words on Daily (need, spec, go-live blocker) and the QFD words on Planning (WHAT, HOW, must-pass gate); pick one to fix it. Every export (TSV, CSV, Markdown, SVG) keeps the QFD words whatever the setting.</li>
+        <li>Statuses: drop a tracker export (a Jira CSV with an "Issue key" column) on Daily or on the Input tab. Statuses, due dates, points and the tracker's update time are merged; your verdicts, retest dates and notes are kept; the day the export was read becomes the day "overdue" is judged against.</li>
       </ul>
     </div>
     <div class="panel" id="lg-notes-panel" hidden>
@@ -650,9 +689,31 @@ const ROOF_CYCLE=['','++','+','−','−−'];
 const ROOF_CLASS={'++':'v-pp','+':'v-p','−':'v-n','−−':'v-nn','':'v-0'};
 const clone=o=>JSON.parse(JSON.stringify(o));
 
+// ---------- words: the QFD terms and their plain equivalents. Auto = plain on Daily, QFD on Planning. Exports never use these. ----------
+const TERMS={qfd:{screenDaily:'Daily',screenPlanning:'Planning',house:'House of Quality',tabHouse:'House',tabDiag:'Diagonal',tabRoof:'Roof pairs',tabHows:'Characteristics',tabLegend:'Legend',
+  what:'Need (WHAT)',how:'Characteristic (HOW)',hows:'Characteristics',howsLower:'characteristics',howLower:'characteristic',howNum:'Characteristic #',
+  room:'Room',roof:'Roof',roofSeg:'Roof',basement:'Basement',rightWall:'Right wall',leftWall:'Left wall',ceiling:'Ceiling',
+  coupled:'coupled',decoupled:'decoupled',uncoupled:'uncoupled',
+  gates:'Must-pass gates',gateCell:'Must-pass gate',criticalPath:'Critical path',trackerVsTests:'Board against tests',overdue:'Past due, not done',noItem:'Characteristics with no work item',allItems:'All work items',
+  ordDiag:'Diagonal',dgApply:'Show the House in this order',dgShown:'The House shows this order',chart1:'Which characteristics carry the weight',
+  dgFoot:'Same room, same ratings; only the order of the rows and columns has changed. Outlined blocks are the modules, the dashed line is the diagonal, and a dashed ring marks a relationship that sits outside its block. Hover a cell for the pair. Edit ratings in the House and this view recomputes.',
+  tileRW:'Right wall: today against goal',tileBoard:'Status, weighted by the house'},
+ plain:{house:'Needs against specs',tabHouse:'Matrix',tabDiag:'Modules',tabRoof:'Trade-offs',tabHows:'Specs',tabLegend:'How to read this',
+  what:'Need',how:'Spec',hows:'Specs',howsLower:'specs',howLower:'spec',howNum:'Spec #',
+  room:'The grid',roof:'Spec trade-offs',roofSeg:'Trade-offs',basement:'Totals per spec',rightWall:'Today against goal',leftWall:'The needs',ceiling:'The specs',
+  coupled:'tangled, no build order',decoupled:'one-way, a build order exists',uncoupled:'independent',
+  gates:'Must pass before go-live',gateCell:'Go-live blocker',criticalPath:'What to do next',trackerVsTests:'Where the tracker is wrong',overdue:'Overdue',noItem:'Specs with no work item',
+  ordDiag:'Grouped',dgApply:'Show the grid in this order',dgShown:'The grid shows this order',chart1:'Which specs carry the weight',
+  dgFoot:'Same grid, same ratings; only the order of the rows and columns has changed. Outlined groups are the modules, the dashed line is the diagonal, and a dashed ring marks a link that sits outside its group. Hover a cell for the pair. Edit ratings in the Matrix and this view recomputes.',
+  tileRW:'How far along we are',tileBoard:'Board progress, weighted'}};
+let SCREEN='daily';
+const termMode=()=>P.terms==='auto'?(SCREEN==='daily'?'plain':'qfd'):(P.terms==='plain'?'plain':'qfd');
+const t=k=>{const m=termMode();return (TERMS[m]&&TERMS[m][k])??TERMS.qfd[k]??k;};
+function applyTerms(){const m=termMode();document.documentElement.dataset.terms=m;document.querySelectorAll('[data-t]').forEach(el=>{const v=t(el.dataset.t);el.textContent=el.hasAttribute('data-cap')?cap(v):v;});$('terms').value=P.terms;}
+
 // ---------- state: the house itself (data + ratings), a snapshot of what was loaded, and the view preferences ----------
 let HOUSE=null,HOUSE0=null;
-let P={mode:'importance',disp:'sym',roofShown:true,order:null,dgUse:'all',dgK:0,reduce:false};
+let P={mode:'importance',disp:'sym',roofShown:true,order:null,dgUse:'all',dgK:0,reduce:false,screen:null,tab:'house',terms:'auto'};
 let WHATS=[],HOWS=[];       // display order (permuted when a diagonal order is applied)
 let IDX={};                 // characteristic id -> listed index, for canonical roof keys
 const canon=(a,b)=>IDX[a]<IDX[b]?a+'|'+b:b+'|'+a;
@@ -714,11 +775,11 @@ function build(){
   add('<div class="c span4 tiny r-dir">Direction of improvement: ↑ more is better · ↓ less is better · ◎ meet the target</div>');
   HOWS.forEach((h,j)=>add(`<div class="c hc dir r-dir col-${j}" data-tip="${esc(h.id+': '+(h.direction==='↑'?'larger is better':h.direction==='↓'?'smaller is better':'meet a set target'))}">${h.direction}</div>`));
   add('<div class="c rspan tiny r-dir">Scores: 1 poor · 5 excellent</div>');
-  add('<div class="c span4 tiny">Characteristic #</div>');
+  add(`<div class="c span4 tiny" data-t="howNum">${esc(t('howNum'))}</div>`);
   HOWS.forEach((h,j)=>add(`<button type="button" class="c hc hid col-${j}" data-how="${esc(h.id)}" id="hid-${esc(h.id)}">${esc(h.id)}</button>`));
   add(`<div class="c rspan tiny">${esc(cap(tl))} → goal, ratio = goal ÷ ${esc(tl)}, gap % = share of Σ importance × ratio</div>`);
   add('<div class="c hd k0 r-name">#</div>');
-  add('<div class="c hd k1 r-name">Need (WHAT)</div>');
+  add(`<div class="c hd k1 r-name" data-t="what">${esc(t('what'))}</div>`);
   add('<div class="c hd k2 r-name">Source</div>');
   add('<div class="c hd k3 r-name">Importance 1–5</div>');
   HOWS.forEach((h,j)=>add(`<button type="button" class="c hc hname r-name col-${j}${h.gate?' gated':''}" data-how="${esc(h.id)}" data-tip="${esc(h.id+' · '+h.name+' ('+h.unit+')'+(h.gate?'\nMust-pass gate: kept out of the rank':''))}"><span class="vt"><b>${esc(h.short)}</b><i>${esc(h.unit)}</i></span></button>`));
@@ -743,12 +804,12 @@ function build(){
     {label:cap(tl),sub:HOUSE.meta.date?'as of '+HOUSE.meta.date:'',cls:'r-txt',cell:(h,j)=>`<div class="c hc vtx r-txt col-${j}" data-tip="${esc(h.id+' '+tl+': '+h.today)}"><span>${esc(h.todayShort)}</span></div>`},
     {label:'Weighted importance',sub:'Σ (need weight × relationship)',cls:'',cell:(h,j)=>`<div class="c hc wt col-${j}" id="abs-${esc(h.id)}"><span class="fill"></span><span class="v"></span></div>`},
     {label:'Relative weight %',sub:'',cls:'',cell:(h,j)=>`<div class="c hc mono col-${j}" id="pct-${esc(h.id)}"></div>`},
-    {label:'Must-pass gate',sub:'kept out of the rank',cls:'',cell:(h,j)=>`<div class="c hc gate col-${j}" data-tip="${esc(h.id+(h.gate?': must pass before anything ships; not ranked against the feature characteristics':': feature characteristic, ranked'))}">${h.gate?'<span class="gpill">gate</span>':''}</div>`},
+    {label:t('gateCell'),key:'gateCell',sub:'kept out of the rank',cls:'',cell:(h,j)=>`<div class="c hc gate col-${j}" data-tip="${esc(h.id+(h.gate?': must pass before anything ships; not ranked against the feature characteristics':': feature characteristic, ranked'))}">${h.gate?'<span class="gpill">gate</span>':''}</div>`},
     {label:'Priority rank',sub:'1 = most important of the ranked; top five highlighted',cls:'',cell:(h,j)=>`<div class="c hc rank col-${j}" id="rank-${esc(h.id)}"><span class="pill"></span></div>`},
     {label:'Technical difficulty 1–5',sub:'click to step',cls:'',cell:(h,j)=>`<div class="c hc dif col-${j}"><button type="button" data-diff="${esc(h.id)}" id="diff-${esc(h.id)}" aria-label="Difficulty of ${esc(h.id)}"></button></div>`},
     {label:'Links',sub:'work items',cls:'r-txt',cell:(h,j)=>`<div class="c hc vtx r-txt col-${j}" data-tip="${esc(h.links)}"><span>${esc(h.links)}</span></div>`}
   ];
-  base.forEach(b=>{add(`<div class="c span4 lw lbl ${b.cls}">${esc(b.label)}${b.sub?`<small>${esc(b.sub)}</small>`:''}</div>`);HOWS.forEach((h,j)=>add(b.cell(h,j)));add(`<div class="c rspan ${b.cls}"></div>`);});
+  base.forEach(b=>{add(`<div class="c span4 lw lbl ${b.cls}"><span${b.key?` data-t="${b.key}"`:''}>${esc(b.label)}</span>${b.sub?`<small>${esc(b.sub)}</small>`:''}</div>`);HOWS.forEach((h,j)=>add(b.cell(h,j)));add(`<div class="c rspan ${b.cls}"></div>`);});
   grid.innerHTML=parts.join('');
   grid.querySelectorAll('.cell').forEach(el=>{const i=+el.dataset.i,j=+el.dataset.j;(cellEls[i]=cellEls[i]||[])[j]=el;});
   WHATS.forEach((w,i)=>{rowEls[i]=[...grid.querySelectorAll('.row-'+i)];});
@@ -822,7 +883,7 @@ function update(){
     const pill=$('rank-'+h.id).querySelector('.pill');pill.textContent=C.gate[j]?'gate':C.rank[j];pill.classList.toggle('top',C.top[j]);pill.classList.toggle('gate',C.gate[j]);
     $('diff-'+h.id).textContent=h.difficulty;
   });
-  renderStrip(C);renderCharts(C);renderDetail(C);renderTables(C);renderItems(C);renderLegend();
+  renderStrip(C);renderCharts(C);renderDetail(C);renderTables(C);renderBoard(C);renderLegend();
   diagDirty=true;if(!$('view-diag').hidden)renderDiag();
   const relCount=WHATS.reduce((s,w)=>s+HOWS.filter(h=>rel(w.id,h.id)).length,0);
   const roofCount=Object.values(HOUSE.roof).filter(Boolean).length;
@@ -847,7 +908,7 @@ function editCount(){
 function renderHeader(){
   $('hdr-title').textContent=HOUSE.title||'House of Quality';document.title=HOUSE.title||'House of Quality';
   $('hdr-sub').textContent=HOUSE.subtitle||'';
-  $('hdr-eyebrow').textContent=['QFD · House of Quality',HOUSE.meta.date?'data as of '+HOUSE.meta.date:'',HOUSE.meta.author?'by '+HOUSE.meta.author:''].filter(Boolean).join(' · ');
+  $('hdr-eyebrow').innerHTML=[`QFD · <span data-t="house">${esc(t('house'))}</span>`,HOUSE.meta.date?'data as of '+esc(HOUSE.meta.date):'',HOUSE.meta.author?'by '+esc(HOUSE.meta.author):''].filter(Boolean).join(' · ');
 }
 
 // ---------- roof ----------
@@ -880,7 +941,7 @@ function renderStrip(C){
   const order=[...HOWS.keys()].filter(j=>!C.gate[j]).sort((a,b)=>C.abs[b]-C.abs[a]).slice(0,5);
   const gates=[...HOWS.keys()].filter(j=>C.gate[j]);
   $('strip').innerHTML=`<span class="lbl">Top five now:</span>`+order.map(j=>`<button type="button" class="chip" data-how="${esc(HOWS[j].id)}"><b>${C.rank[j]}</b>${esc(HOWS[j].id)} · ${esc(shortName(HOWS[j]))}<span class="w">${pct(C.pct[j])}</span></button>`).join('')
-    +(gates.length?`<span class="lbl gl">Must-pass gates:</span>`+gates.map(j=>`<button type="button" class="chip gate" data-how="${esc(HOWS[j].id)}"><b>gate</b>${esc(HOWS[j].id)} · ${esc(shortName(HOWS[j]))}</button>`).join(''):'');
+    +(gates.length?`<span class="lbl gl"><span data-t="gates">${esc(t('gates'))}</span>:</span>`+gates.map(j=>`<button type="button" class="chip gate" data-how="${esc(HOWS[j].id)}"><b>gate</b>${esc(HOWS[j].id)} · ${esc(shortName(HOWS[j]))}</button>`).join(''):'');
 }
 $('strip').addEventListener('click',e=>{const c=e.target.closest('[data-how]');if(c)select('how',c.dataset.how);});
 function renderCharts(C){
@@ -905,14 +966,14 @@ function renderDetail(C){
     const j=HOWS.findIndex(h=>h.id===selected.id);if(j<0){selected=null;return renderDetail(C);}const h=HOWS[j];
     const drives=WHATS.map((w,i)=>({w,v:rel(w.id,h.id),c:rel(w.id,h.id)*C.wts[i]})).filter(x=>x.v).sort((a,b)=>b.c-a.c);
     const pairs=Object.keys(HOUSE.roof).filter(k=>k.split('|').includes(h.id)&&HOUSE.roof[k]).map(k=>{const o=k.split('|').find(x=>x!==h.id);return {o:howById(o),v:HOUSE.roof[k]};}).filter(p=>p.o);
-    d.innerHTML=`<div class="tag">${esc(h.id)} · characteristic (HOW) · ${C.gate[j]?'must-pass gate · not ranked':'rank '+C.rank[j]+' of '+C.nRanked+' ranked'}</div><h3>${esc(h.name)}</h3>
+    d.innerHTML=`<div class="tag">${esc(h.id)} · <span data-t="how">${esc(t('how'))}</span> · ${C.gate[j]?`<span data-t="gateCell">${esc(t('gateCell'))}</span> · not ranked`:'rank '+C.rank[j]+' of '+C.nRanked+' ranked'}</div><h3>${esc(h.name)}</h3>
     <dl class="kv"><dt>Unit</dt><dd>${esc(h.unit)} ${h.direction}</dd><dt>Target</dt><dd>${esc(h.target)}</dd>${h.gate?'<dt>Gate</dt><dd>Must pass before anything ships, whatever its weight; kept out of the priority rank.</dd>':''}<dt>${esc(cap(HOUSE.meta.todayLabel||'today'))}</dt><dd>${esc(h.today)}</dd><dt>Weight</dt><dd class="mono">${fmt1(C.abs[j])} · ${pct(C.pct[j])} of the total</dd><dt>Difficulty</dt><dd>${h.difficulty} of 5</dd><dt>Links</dt><dd>${esc(h.links)}</dd></dl>
     <p><b>Drives these needs</b> (relationship × weight)</p><ul>${drives.map(x=>`<li><span class="k">${esc(x.w.id)}</span><span>${esc(x.w.short)}</span><span class="v">${SYM[x.v]} ${x.v} × ${fmt1(C.wts[WHATS.indexOf(x.w)])} = ${fmt1(x.c)}</span></li>`).join('')||'<li>No relationships set.</li>'}</ul>
     <p style="margin-top:12px"><b>Roof pairs</b></p><ul>${pairs.map(p=>`<li><span class="k">${esc(p.o.id)}</span><span><span class="sw" style="background:var(${p.v==='++'?'--roof-pp':p.v==='+'?'--roof-p':p.v==='−'?'--roof-n':'--roof-nn'})"></span>${esc(p.o.name)}</span><span class="v">${p.v}</span></li>`).join('')||'<li>No roof pairs set for this characteristic.</li>'}</ul>`;
   }else{
     const i=WHATS.findIndex(w=>w.id===selected.id);if(i<0){selected=null;return renderDetail(C);}const w=WHATS[i];
     const driven=HOWS.map((h,j)=>({h,v:rel(w.id,h.id),j})).filter(x=>x.v).sort((a,b)=>b.v-a.v||C.abs[b.j]-C.abs[a.j]);
-    d.innerHTML=`<div class="tag">${esc(w.id)} · need (WHAT) · source: ${esc(w.source)}</div><h3>${esc(w.need)}</h3>
+    d.innerHTML=`<div class="tag">${esc(w.id)} · <span data-t="what">${esc(t('what'))}</span> · source: ${esc(w.source)}</div><h3>${esc(w.need)}</h3>
     ${w.why?`<p>${esc(w.why)}</p>`:''}
     <dl class="kv"><dt>Importance</dt><dd>${w.importance} of 5${P.mode==='gap'?` · weight in the room ${fmt1(C.wts[i])}`:''}</dd><dt>Today → goal</dt><dd class="mono">${w.today} → ${w.goal} · ratio ${fmt1(C.ratio[i])}× · adjusted weight ${fmt1(C.adj[i])} (${pct(C.adjPct[i])})</dd><dt>Links</dt><dd>${esc(w.links)}</dd></dl>
     <p><b>Met through</b></p><ul>${driven.map(x=>`<li><span class="k">${esc(x.h.id)}</span><span>${esc(x.h.name)}</span><span class="v">${SYM[x.v]} ${x.v} · ${H.rankText(C,x.j)}</span></li>`).join('')||'<li>No relationships set.</li>'}</ul>`;
@@ -920,8 +981,8 @@ function renderDetail(C){
 }
 function renderTables(C){
   const tl=cap(HOUSE.meta.todayLabel||'today');
-  $('tbl-needs').innerHTML=`<thead><tr><th>#</th><th>Need (WHAT)</th><th>Source</th><th>Why it matters</th><th>Imp.</th><th>${esc(tl)}</th><th>Goal</th><th>Ratio</th><th>Gap %</th><th>Links</th></tr></thead><tbody>${WHATS.map((w,i)=>`<tr><td class="m">${esc(w.id)}</td><td>${esc(w.need)}</td><td>${esc(w.source)}</td><td class="why">${esc(w.why)}</td><td class="m">${w.importance}</td><td class="m">${w.today}</td><td class="m">${w.goal}</td><td class="m">${fmt1(C.ratio[i])}×</td><td class="m">${pct(C.adjPct[i])}</td><td class="m">${esc(w.links)}</td></tr>`).join('')}</tbody>`;
-  $('tbl-hows').innerHTML=`<thead><tr><th>#</th><th>Characteristic (HOW)</th><th>Unit</th><th>Dir.</th><th>Target</th><th>${esc(tl)}</th><th>Weight</th><th>%</th><th>Gate</th><th>Rank</th><th>Diff.</th><th>Links</th></tr></thead><tbody>${HOWS.map((h,j)=>`<tr><td class="m">${esc(h.id)}</td><td>${esc(h.name)}</td><td>${esc(h.unit)}</td><td class="m">${h.direction}</td><td class="why">${esc(h.target)}</td><td class="why">${esc(h.today)}</td><td class="m">${fmt1(C.abs[j])}</td><td class="m">${pct(C.pct[j])}</td><td class="m">${h.gate?'must pass':''}</td><td class="m">${C.gate[j]?'gate':C.rank[j]}</td><td class="m">${h.difficulty}</td><td class="m">${esc(h.links)}</td></tr>`).join('')}</tbody>`;
+  $('tbl-needs').innerHTML=`<thead><tr><th>#</th><th data-t="what">${esc(t('what'))}</th><th>Source</th><th>Why it matters</th><th>Imp.</th><th>${esc(tl)}</th><th>Goal</th><th>Ratio</th><th>Gap %</th><th>Links</th></tr></thead><tbody>${WHATS.map((w,i)=>`<tr><td class="m">${esc(w.id)}</td><td>${esc(w.need)}</td><td>${esc(w.source)}</td><td class="why">${esc(w.why)}</td><td class="m">${w.importance}</td><td class="m">${w.today}</td><td class="m">${w.goal}</td><td class="m">${fmt1(C.ratio[i])}×</td><td class="m">${pct(C.adjPct[i])}</td><td class="m">${esc(w.links)}</td></tr>`).join('')}</tbody>`;
+  $('tbl-hows').innerHTML=`<thead><tr><th>#</th><th data-t="how">${esc(t('how'))}</th><th>Unit</th><th>Dir.</th><th>Target</th><th>${esc(tl)}</th><th>Weight</th><th>%</th><th>Gate</th><th>Rank</th><th>Diff.</th><th>Links</th></tr></thead><tbody>${HOWS.map((h,j)=>`<tr><td class="m">${esc(h.id)}</td><td>${esc(h.name)}</td><td>${esc(h.unit)}</td><td class="m">${h.direction}</td><td class="why">${esc(h.target)}</td><td class="why">${esc(h.today)}</td><td class="m">${fmt1(C.abs[j])}</td><td class="m">${pct(C.pct[j])}</td><td class="m">${h.gate?'must pass':''}</td><td class="m">${C.gate[j]?'gate':C.rank[j]}</td><td class="m">${h.difficulty}</td><td class="m">${esc(h.links)}</td></tr>`).join('')}</tbody>`;
   const keys=Object.keys(HOUSE.roof).filter(k=>HOUSE.roof[k]).sort((a,b)=>{const [a1,a2]=a.split('|').map(x=>IDX[x]);const [b1,b2]=b.split('|').map(x=>IDX[x]);return a1-b1||a2-b2;});
   $('tbl-roof').innerHTML=`<thead><tr><th>A</th><th>Characteristic A</th><th>B</th><th>Characteristic B</th><th>Correlation</th><th>Meaning</th></tr></thead><tbody>${keys.map(k=>{const [a,b]=k.split('|');const v=HOUSE.roof[k];const ha=howById(a),hb=howById(b);if(!ha||!hb)return '';return `<tr><td class="m">${esc(a)}</td><td>${esc(ha.name)}</td><td class="m">${esc(b)}</td><td>${esc(hb.name)}</td><td><select data-roof="${esc(k)}" aria-label="${esc(a)} with ${esc(b)}"><option value="++"${v==='++'?' selected':''}>++</option><option value="+"${v==='+'?' selected':''}>+</option><option value="−"${v==='−'?' selected':''}>−</option><option value="−−"${v==='−−'?' selected':''}>−−</option><option value="">remove</option></select></td><td class="why">${ROOF_WORD[v]||''}</td></tr>`;}).join('')||'<tr><td colspan="6">No roof pairs set.</td></tr>'}</tbody>`;
 }
@@ -954,35 +1015,35 @@ $('svg').addEventListener('click',()=>dl(slug()+'.svg',svgText(),'image/svg+xml'
 $('red-off').addEventListener('click',()=>{if(!P.reduce)return;P.reduce=false;save();selected=null;rebuildHouse();});
 $('red-on').addEventListener('click',()=>{if(P.reduce)return;P.reduce=true;save();selected=null;rebuildHouse();toast('Rows and columns with no relationship hidden; the numbers are unchanged');});
 
-// ---------- work items ----------
-function renderItems(C){
-  const T=H.itemShares(HOUSE,C,HOWS,WHATS);const tot=C.total||1;const Pg=H.progress(HOUSE,C.full||C);
-  const items=HOUSE.items;const keys=T.keys;const have=Object.keys(items).length>0;
-  const gates=HOWS.filter(h=>h.gate);const noItem=HOWS.filter(h=>!H.linksOf(h.links,items).length);
-  const scaleOrder=Object.keys(HOUSE.statusScale).sort((a,b)=>HOUSE.statusScale[a]-HOUSE.statusScale[b]);
-  const stPill=st=>{const p=HOUSE.statusScale[st];const cls=p===undefined?'':p>=1?'p4':p>=0.8?'p3':p>=0.5?'p2':p>0?'p1':'';return `<span class="stp ${cls}">${esc(st||'—')}</span>`;};
-  const tsPill=tc=>tc?`<span class="tp ${tc==='verified'?'verified':tc==='partial'?'partial':tc==='failed'?'failed':'nr'}">${esc(H.TESTED_CLASSES[tc])}</span>`:'<span class="tp nr">No test</span>';
-  const done=Object.keys(items).filter(k=>(HOUSE.statusScale[items[k].status]||0)>=1);
-  const doneV=done.filter(k=>items[k].tested==='verified'),doneP=done.filter(k=>items[k].tested==='partial'),doneX=done.filter(k=>items[k].tested==='failed'||items[k].tested==='not built');
+// ---------- the board: Daily panels and the items table, both from HOQ.boardFacts ----------
+const stPill=st=>{const p=HOUSE.statusScale[st];const cls=p===undefined?'':p>=1?'p4':p>=0.8?'p3':p>=0.5?'p2':p>0?'p1':'';return `<span class="stp ${cls}">${esc(st||'—')}</span>`;};
+const tsPill=tc=>tc?`<span class="tp ${tc==='verified'?'verified':tc==='partial'?'partial':tc==='fails'?'failed':'nr'}">${esc(H.TESTED_CLASSES[tc]||tc)}</span>`:'<span class="tp nr">No test</span>';
+const whenText=iso=>{if(!iso)return '';const d=new Date(iso);return isNaN(d.getTime())?String(iso):d.toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});};
+const chg='<span class="chg">changed since the test</span>';
+function renderBoard(C){const F=H.boardFacts(HOUSE,C.full||C);renderDaily(F);renderItemsTable(F);}
+function renderDaily(F){
+  $('dy-asof').innerHTML=`<span class="lbl">As of</span> <b>${esc(F.asOf)}</b> <span class="muted">(${esc(F.asOfSource)})</span> · ${F.board.source?`statuses from <b>${esc(F.board.source)}</b>${F.board.read?', read '+esc(whenText(F.board.read)):''}`:'statuses as typed in the file'} · ${F.counts.items} work item${F.counts.items===1?'':'s'}`;
+  const gl=g=>g.state.replace(' ','-');
+  $('dy-gates').innerHTML=`<h2><span data-t="gates">${esc(t('gates'))}</span><small>${F.counts.gatesClear} of ${F.counts.gates} clear</small></h2>`+(F.gates.length?`<ul class="gt">${F.gates.map(g=>`<li class="${gl(g)}"><b>${esc(g.id)}</b> ${esc(g.short)}<span class="st">${esc(g.state)}</span><br>${g.items.map(x=>`${esc(x.key)} ${stPill(x.status)} ${tsPill(x.tested)} <span class="rd ${x.verdictClass}">${esc(x.verdict)}</span>${x.due?` <span class="due${x.late?' late':''}">due ${esc(x.due)}</span>`:''}${x.stale?' '+chg:''}`).join('<br>')||'<span class="muted">no work item: nothing on the board covers this gate</span>'}<br><span class="muted">${esc(g.today||'—')} → target ${esc(g.target||'—')}</span></li>`).join('')}</ul>`:`<p class="muted">No ${esc(t('howLower'))} is marked as a gate. Mark one on the Input tab when it must pass before anything ships.</p>`);
+  $('dy-path').innerHTML=`<h2><span data-t="criticalPath">${esc(t('criticalPath'))}</span><small>${F.path.source==='narrative'?'the critical path written in the file':'open items by their share of the house'}</small></h2><ol class="path">${F.path.steps.map((st,i)=>`<li class="${i===F.path.firstOpen?'next':st.open?'':'done'}"><b>${esc(st.label)}</b>${st.text?' · '+esc(st.text):''}${st.share?` <span class="muted">(${pct(st.share)})</span>`:''}${!st.open?' <span class="muted">· done</span>':i===F.path.firstOpen?' <span class="muted">· next</span>':''}</li>`).join('')||'<li class="muted">No links name a work item yet. Put item keys in the Links fields.</li>'}</ol>
+   <p style="margin-top:12px"><b data-t="noItem">${esc(t('noItem'))}</b></p><ul class="ev">${F.noItem.map(x=>`<li>${esc(x.id)} ${esc(x.short)} (${pct(x.share)})${x.links?': '+esc(x.links):''}</li>`).join('')||'<li>None: every one links to a work item.</li>'}</ul>`;
+  const grp=(title,list)=>list.length?`<p class="h"><b>${title}</b></p><ul class="ls">${list.map(m=>`<li><span class="k">${esc(m.key)}</span><span class="t">${esc(m.title)}</span><span class="v">${stPill(m.status)} ${tsPill(m.tested)} <span class="rd ${m.verdictClass}">${esc(m.verdict)}</span>${m.stale?' '+chg:''}</span></li>`).join('')}</ul>`:'';
+  const over=F.mismatch.filter(m=>['overstated','open clauses','partly','not yet'].includes(m.kind)),under=F.mismatch.filter(m=>m.kind==='understated'),stale=F.mismatch.filter(m=>m.kind==='stale');
+  $('dy-mismatch').innerHTML=`<h2><span data-t="trackerVsTests">${esc(t('trackerVsTests'))}</span><small>${F.mismatch.length} item${F.mismatch.length===1?'':'s'}</small></h2>`+(F.mismatch.length?grp('Says done or nearly, the tests disagree',over)+grp('Says not done, the tests pass',under)+grp('Changed on the board since the test',stale):'<p class="muted">The board and your tests agree everywhere they can be compared.</p>')+(F.counts.noTest?`<p class="muted" style="margin-top:10px">${F.counts.noTest} item${F.counts.noTest===1?' has':'s have'} no test yet.</p>`:'');
+  $('dy-overdue').innerHTML=`<h2><span data-t="overdue">${esc(t('overdue'))}</span><small>as of ${esc(F.asOf)}</small></h2>`+(F.overdue.length?`<ul class="ls">${F.overdue.map(o=>`<li><span class="k">${esc(o.key)}</span><span class="t">${esc(o.title)}</span><span class="v"><span class="due late">due ${esc(o.due)}</span> · ${o.daysLate} day${o.daysLate===1?'':'s'} late · ${stPill(o.status)}</span></li>`).join('')}</ul>`:'<p class="muted">Nothing is past its due date.</p>');
+}
+function renderItemsTable(F){
+  const Pg=F.progress;const have=F.counts.items>0;const scaleOrder=Object.keys(HOUSE.statusScale).sort((a,b)=>HOUSE.statusScale[a]-HOUSE.statusScale[b]);
+  const doneP=F.rows.filter(r=>r.known&&r.weight===1&&r.tested==='partial').map(r=>r.key),doneX=F.rows.filter(r=>r.verdict==='overstated').map(r=>r.key),staleK=F.rows.filter(r=>r.stale).map(r=>r.key);
   $('tk-tiles').innerHTML=`
-   <div class="tile"><div class="tl">Right wall: today against goal</div><div class="tv">${Math.round(Pg.rightWall*100)}%<small>of the way from poor to goal</small></div><div class="ts">Importance-weighted over the ${HOUSE.needs.length} needs: (today − 1) ÷ (goal − 1).</div></div>
-   ${have?`<div class="tile"><div class="tl">Status, weighted by the house</div><div class="tv">${Pg.statusWeighted===null?'—':Math.round(Pg.statusWeighted*100)+'%'}<small>over ${Math.round(Pg.coverage*100)}% of the weight that has items</small></div><div class="ts">${scaleOrder.map(s=>`${esc(s)} ${HOUSE.statusScale[s]}`).join(' · ')}, each item weighted by its share.</div></div>
-   <div class="tile"><div class="tl">Items by status</div><div class="tv">${done.length}<small>done of ${Pg.itemCount}</small></div><div class="ts">${Object.keys(Pg.counts).map(s=>`${Pg.counts[s]} ${esc(s)}`).join(' · ')}.${Pg.effortAll?` Effort left: ${Pg.effortLeft} of ${Pg.effortAll}.`:''}</div></div>
-   <div class="tile"><div class="tl">Done, confirmed by your tests</div><div class="tv">${doneV.length}<small>of ${done.length} done</small></div><div class="ts">${doneP.length} done with open clauses${doneP.length?' ('+doneP.join(', ')+')':''}; ${doneX.length} overstated${doneX.length?' ('+doneX.join(', ')+')':''}.</div></div>
-   <div class="tile"><div class="tl">Past their due date, not done</div><div class="tv">${Pg.late.length}<small>as of ${esc(Pg.asOf)}</small></div><div class="ts">${Pg.late.map(k=>`${esc(k)} (${esc(items[k].due)})`).join(', ')||'None'}.</div></div>`:''}
-   <div class="tile"><div class="tl">Must-pass gates</div><div class="tv">${gates.length}<small>${gates.length===1?'gate':'gates'}</small></div><div class="ts">${gates.map(h=>`${esc(h.id)} ${esc(shortName(h))}`).join(' · ')||'None marked.'}</div></div>`;
-  const cp=(HOUSE.narrative&&HOUSE.narrative.criticalPath)||[];const fd=(HOUSE.narrative&&HOUSE.narrative.findings)||[];
-  $('tk-path').innerHTML=`<h2>Where the weight is</h2>${cp.length?`<p class="muted">The critical path, as written in the file:</p><ol class="path">${cp.map(([k,t])=>`<li><b>${esc(k)}</b> · ${esc(t)}</li>`).join('')}</ol>`:`<p class="muted">Items in order of the share of the house they carry:</p><ol class="path">${keys.slice(0,7).map(k=>`<li><b>${esc(k)}</b> · ${esc((items[k]||{}).title||'')} ${T.shares[k]?'('+pct(T.shares[k]/tot)+')':''}</li>`).join('')||'<li>No links name a work item yet. Put item keys in the Links fields.</li>'}</ol>`}
-   <p style="margin-top:12px"><b>Characteristics with no work item</b></p><ul class="ev">${noItem.map(h=>`<li>${esc(h.id)} ${esc(shortName(h))} (${pct(C.abs[HOWS.indexOf(h)]/tot)})${h.links?': '+esc(h.links):''}</li>`).join('')||'<li>None: every characteristic links to an item.</li>'}</ul>`;
-  $('tk-gates').innerHTML=`<h2>The gates</h2>${gates.length?`<ul class="gt">${gates.map(h=>{const t=H.linksOf(h.links,items).filter(k=>items[k]);return `<li><b>${esc(h.id)}</b> ${esc(shortName(h))} · ${t.map(k=>`${esc(k)} ${stPill(items[k].status)}${items[k].due?' <span class="due">due '+esc(items[k].due)+'</span>':''}`).join(' ')||'<span class="muted">no item</span>'}<br><span style="color:var(--muted)">${esc(h.today)}</span></li>`;}).join('')}</ul>`:'<p class="muted">No characteristic is marked as a gate. Mark one on the Input tab when it must pass before anything ships.</p>'}
-   ${fd.length?`<p style="margin-top:12px"><b>Findings</b></p><ul class="ev">${fd.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}`;
-  $('tbl-items').innerHTML=have||keys.length?`<thead><tr><th>Item</th><th>Title</th><th>Share</th><th>Serves</th><th>Status</th><th>Due</th><th>Effort</th><th>Your test</th><th>Really done?</th><th>Note</th></tr></thead><tbody>${keys.map(k=>{
-    const it=items[k]||{};const hs=T.chars[k]||[];const ns=T.needs[k]||[];
-    const serves=[...hs.map(h=>`${esc(h.id)}${h.gate?' <b>gate</b>':''}`),...ns.map(w=>esc(w.id))].join(', ');
-    const late=it.due&&it.due<Pg.asOf&&(HOUSE.statusScale[it.status]||0)<1;
-    const rd=H.reallyDone(HOUSE,it.status,it.tested);
-    return `<tr><td class="m">${esc(k)}</td><td>${esc(it.title||'')}</td><td class="m">${T.shares[k]?pct(T.shares[k]/tot):'—'}</td><td class="sv">${serves}</td><td>${stPill(it.status)}</td><td class="due${late?' late':''}">${esc(it.due||'—')}</td><td class="m">${esc(it.effort||'—')}</td><td>${tsPill(it.tested)}</td><td><span class="rd ${rd[1]}">${rd[0]}</span></td><td class="why">${esc(it.note||'')}</td></tr>`;}).join('')}</tbody>`:'<tbody><tr><td class="why">No work items loaded. Add them on the Input tab, or name item keys in the Links fields; the share column works from the links alone.</td></tr></tbody>';
-  $('tk-foot').textContent=`${keys.length} items linked from the house · share = the characteristic's weighted importance split evenly over its items, so an item on two characteristics adds both parts · an item linked only from a need shows no share · status weights: ${scaleOrder.map(s=>s+' '+HOUSE.statusScale[s]).join(', ')} · Really done? reads the status against your own test verdict.`;
+   <div class="tile"><div class="tl" data-t="tileRW">${esc(t('tileRW'))}</div><div class="tv">${Math.round(Pg.rightWall*100)}%<small>of the way from poor to goal</small></div><div class="ts">Importance-weighted over the ${HOUSE.needs.length} needs: (today − 1) ÷ (goal − 1).</div></div>
+   ${have?`<div class="tile"><div class="tl" data-t="tileBoard">${esc(t('tileBoard'))}</div><div class="tv">${Pg.statusWeighted===null?'—':Math.round(Pg.statusWeighted*100)+'%'}<small>over ${Math.round(Pg.coverage*100)}% of the weight that has items</small></div><div class="ts">${scaleOrder.map(x=>`${esc(x)} ${HOUSE.statusScale[x]}`).join(' · ')}, each item weighted by its share.</div></div>
+   <div class="tile"><div class="tl">Items by status</div><div class="tv">${F.counts.done}<small>done of ${F.counts.items}</small></div><div class="ts">${Object.keys(Pg.counts).map(x=>`${Pg.counts[x]} ${esc(x)}`).join(' · ')}.${Pg.effortAll?` Effort left: ${Pg.effortLeft} of ${Pg.effortAll}.`:''}${F.counts.unknownStatus.length?` Not in the weights: ${F.counts.unknownStatus.map(esc).join(', ')}.`:''}</div></div>
+   <div class="tile"><div class="tl">Done, confirmed by your tests</div><div class="tv">${F.counts.doneVerified}<small>of ${F.counts.done} done</small></div><div class="ts">${doneP.length} done with open clauses${doneP.length?' ('+doneP.map(esc).join(', ')+')':''}; ${doneX.length} overstated${doneX.length?' ('+doneX.map(esc).join(', ')+')':''}; ${staleK.length} changed on the board since the test${staleK.length?' ('+staleK.map(esc).join(', ')+')':''}; ${F.counts.noTest} with no test yet.</div></div>
+   <div class="tile"><div class="tl" data-t="overdue">${esc(t('overdue'))}</div><div class="tv">${F.overdue.length}<small>as of ${esc(F.asOf)} (${esc(F.asOfSource)})</small></div><div class="ts">${F.overdue.map(o=>`${esc(o.key)} (${esc(o.due)}, ${o.daysLate} d)`).join(', ')||'None'}.</div></div>`:''}
+   <div class="tile"><div class="tl" data-t="gates">${esc(t('gates'))}</div><div class="tv">${F.counts.gatesClear}<small>of ${F.counts.gates} clear</small></div><div class="ts">${F.gates.map(g=>`${esc(g.id)} ${esc(g.short)}: ${esc(g.state)}`).join(' · ')||'None marked.'}</div></div>`;
+  $('tbl-items').innerHTML=F.rows.length?`<thead><tr><th>Item</th><th>Title</th><th>Share</th><th>Serves</th><th>Status</th><th>Due</th><th>Effort</th><th>Your test</th><th>Retested</th><th>Tracker updated</th><th>Really done?</th><th>Note</th></tr></thead><tbody>${F.rows.map(r=>`<tr><td class="m">${esc(r.key)}</td><td>${esc(r.title)}</td><td class="m">${r.share?pct(r.share):'—'}</td><td class="sv">${r.serves.map(x=>esc(x.id)+(x.gate?' <b>gate</b>':'')).join(', ')}</td><td>${stPill(r.status)}</td><td class="due${r.late?' late':''}">${esc(r.due||'—')}${r.late?`<span class="tt">${r.daysLate} d late</span>`:''}</td><td class="m">${esc(r.effort||'—')}</td><td>${r.known?tsPill(r.tested):'<span class="muted">—</span>'}</td><td class="m">${esc(r.retested||'—')}</td><td class="m">${r.updated?esc(H.isoDate(r.updated)||r.updated):'—'}${r.stale?'<span class="chg stale">changed since the test</span>':''}</td><td><span class="rd ${r.verdictClass}">${r.known?esc(r.verdict):'not an item'}</span></td><td class="why">${esc(r.note)}</td></tr>`).join('')}</tbody>`:'<tbody><tr><td class="why">No work items loaded. Add them on the Input tab, or name item keys in the Links fields; the share column works from the links alone.</td></tr></tbody>';
+  $('tk-foot').textContent=`${F.counts.linked} items linked from the house · share = the characteristic's weighted importance split evenly over its items, so an item on two characteristics adds both parts · an item linked only from a need shows no share · status weights: ${scaleOrder.map(x=>x+' '+HOUSE.statusScale[x]).join(', ')} · Really done? reads the status against your own test verdict (Verified / Partial / Fails / Not built, with the date you last tested it) · "changed since the test" means the tracker updated the item after that date · overdue is judged against the ${F.asOfSource} (${F.asOf}).`;
 }
 
 // ---------- diagonal view ----------
@@ -1009,7 +1070,7 @@ function renderDiag(){
   const rankOf=j=>H.rankText(C,j);
   $('dg-all').setAttribute('aria-pressed',P.dgUse!=='strong');$('dg-strong').setAttribute('aria-pressed',P.dgUse==='strong');
   $('dg-k').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',(+b.dataset.k)===(P.dgK||0)));
-  const same=sameOrder(r);$('dg-apply').disabled=same;$('dg-apply').textContent=same?'The House shows this order':'Show the House in this order';
+  const same=sameOrder(r);$('dg-apply').disabled=same;$('dg-apply').dataset.t=same?'dgShown':'dgApply';$('dg-apply').textContent=t(same?'dgShown':'dgApply');
   const tie=t=>N[t.i].id+' ← '+X[t.j].id;
   const tieTxt=(c,limit)=>c.slice(0,limit).map(tie).join(', ')+(c.length>limit?' and '+(c.length-limit)+' more':'');
   const seqTxt=cp=>{const ties=cp.above.length?cp.above:cp.below;const seen=new Set();const out=[];ties.forEach(t=>{const k=r.colBlock[t.j]+'>'+r.rowBlock[t.i];if(seen.has(k))return;seen.add(k);out.push('B'+(r.colBlock[t.j]+1)+' before B'+(r.rowBlock[t.i]+1));});return out.join(', ');};
@@ -1020,8 +1081,8 @@ function renderDiag(){
   $('dg-tiles').innerHTML=`
    <div class="tile"><div class="tl">Relationships inside the blocks</div><div class="tv">${pc(r.after.inBlock)}<small>was ${pc(r.before.inBlock)} as listed</small></div><div class="ts">${r.k} blocks${P.dgK?', fixed':', chosen by modularity (Q = '+r.after.Q.toFixed(2)+')'}; weight 9/3/1${P.dgUse==='strong'?', strong only':''}.</div></div>
    <div class="tile"><div class="tl">Mean distance from the diagonal</div><div class="tv">${(r.after.meanDist*100).toFixed(1)}%<small>was ${(r.before.meanDist*100).toFixed(1)}%</small></div><div class="ts">Of the matrix width, per unit of relationship. The cost J fell from ${fmt1(r.J0)} as listed to ${fmt1(r.Jspec)} spectral to ${fmt1(r.after.J)} after ${r.passes} refinement move${r.passes===1?'':'s'}.</div></div>
-   <div class="tile"><div class="tl">Coupling, strong (●) only</div><div class="tv">${cap(r.strong.verdict)}</div><div class="ts">${verdictSub(r.strong,'strong ')}</div></div>
-   <div class="tile"><div class="tl">Coupling, counting ○ and △ too</div><div class="tv">${cap(r.all.verdict)}</div><div class="ts">${verdictSub(r.all,'')}</div></div>`;
+   <div class="tile"><div class="tl">Coupling, strong (●) only</div><div class="tv" style="font-size:22px"><span data-t="${esc(r.strong.verdict)}" data-cap>${esc(cap(t(r.strong.verdict)))}</span></div><div class="ts">${verdictSub(r.strong,'strong ')}</div></div>
+   <div class="tile"><div class="tl">Coupling, counting ○ and △ too</div><div class="tv" style="font-size:22px"><span data-t="${esc(r.all.verdict)}" data-cap>${esc(cap(t(r.all.verdict)))}</span></div><div class="ts">${verdictSub(r.all,'')}</div></div>`;
   const dg=$('dgm');dg.style.setProperty('--dgn',m);
   let h='<div class="dh corner"><span>needs ↓<br>characteristics →</span></div><div class="sph"></div>';
   r.cols.forEach((j,b)=>{const hh=X[j];const pcj=r.perCol[b];h+=`<div class="dh" data-tip="${esc(hh.id+' · '+hh.name+'\n'+rankOf(j)+' · '+pc(pcj.total?pcj.outside/pcj.total:0)+' of its weight outside '+blockLabel(r,r.colBlock[j]))}"><span class="vt"><b>${esc(hh.id)}</b> ${esc(shortName(hh))}</span></div>`;});
@@ -1067,7 +1128,7 @@ function rebuildHouse(){setLists();build();if(selected){if(selected.type==='how'
 function applyDiag(){const r=(diagLast&&!diagDirty)?diagLast:diagResult();P.order={rows:r.rowIds,cols:r.colIds,rowCuts:r.blocks.rowCuts,colCuts:r.blocks.colCuts,k:r.k,names:r.names};save();rebuildHouse();toast(`House reordered: ${r.k} blocks along the diagonal`);}
 $('ord-orig').addEventListener('click',()=>{if(!P.order)return;P.order=null;save();rebuildHouse();toast('Back to the listed order');});
 $('ord-diag').addEventListener('click',()=>{if(P.order)return;if(HOUSE.needs.length<2||HOUSE.characteristics.length<2){toast('Needs at least two needs and two characteristics');return;}applyDiag();});
-$('dg-apply').addEventListener('click',()=>{applyDiag();showView('house');try{history.replaceState(null,'','#house');}catch(err){}});
+$('dg-apply').addEventListener('click',()=>{applyDiag();showView('house');});
 $('dg-all').addEventListener('click',()=>{P.dgUse='all';save();renderDiag();});
 $('dg-strong').addEventListener('click',()=>{P.dgUse='strong';save();renderDiag();});
 $('dg-k').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;P.dgK=+b.dataset.k;save();renderDiag();});
@@ -1084,37 +1145,50 @@ function loadFromObject(obj,label){
 $('in-sample').addEventListener('click',()=>{if(window.HOQ_SAMPLE)loadFromObject(clone(window.HOQ_SAMPLE),'Sample loaded');else msg('sample-house.js is missing next to this page.','err');});
 $('in-empty').addEventListener('click',()=>{const e=H.blank();e.needs=[{id:'W1',need:'First need',short:'First need',source:'',importance:3,today:1,goal:5,links:'',why:''}];e.characteristics=[{id:'H1',name:'First characteristic',short:'First characteristic',unit:'',direction:'↑',target:'',targetShort:'',today:'',todayShort:'',links:'',difficulty:3,gate:false}];loadFromObject(e,'Empty house started');showView('input');});
 $('in-load-paste').addEventListener('click',()=>{let obj;try{obj=JSON.parse($('in-paste').value);}catch(e){msg('That is not valid JSON: '+e.message,'err');return;}if(loadFromObject(obj,'Pasted JSON loaded'))$('in-paste').value='';});
-function readFiles(files){
+/** The text of an import result: which items changed, what was added, what the file did not cover. */
+function importSummary(r,name){const keys=[...new Set(r.changes.map(c=>c.key))];return `Statuses merged from ${name}: ${r.changes.length} change${r.changes.length===1?'':'s'} on ${keys.length} item${keys.length===1?'':'s'}${keys.length?' ('+keys.slice(0,8).join(', ')+(keys.length>8?' …':'')+')':''}; ${r.added.length} added; ${r.unchanged.length} unchanged; ${(n=>n+' row'+(n===1?'':'s')+' the house does not link '+(n===1?'was':'were')+' skipped')(r.skipped.filter(x=>x.key).length)}. Your verdicts, retest dates and notes are kept.`+(r.unknownStatuses.length?` Statuses not in the weights: ${r.unknownStatuses.join(', ')}.`:'');}
+/** Load files from the Input tab or the Daily strip: a house .json replaces the house; the five CSV tables replace their part; a tracker export
+ *  (a Jira CSV, or a JSON array of its rows) merges statuses into the items and keeps the verdicts. `where` = 'daily' reports by toast as well. */
+function readFiles(files,where){
   const list=[...files];if(!list.length)return;
-  const tables={};let jsonObj=null,jsonError='';let pending=list.length;const names=[];
+  const say=(text,cls)=>{msg(text,cls);if(where==='daily')toast(text.split('\n')[0].slice(0,160));};
+  const tables={};let jsonObj=null,jsonError='';let pending=list.length;const names=[];let tracker=null,jsonName='';
   list.forEach(f=>{const rd=new FileReader();rd.onload=()=>{const text=String(rd.result);names.push(f.name);
-    if(/\.json$/i.test(f.name)){try{jsonObj=JSON.parse(text);}catch(e){jsonError=f.name+' is not valid JSON: '+e.message;}}
-    else{const rows=H.parseCSV(text);const kind=H.classifyCSV(rows,f.name);if(kind)tables[kind]=rows;else msg('Could not tell what '+f.name+' is (needs, characteristics, matrix, roof or items). Check its header row.','err');}
+    if(/\.json$/i.test(f.name)){try{jsonObj=JSON.parse(text);jsonName=f.name;if(Array.isArray(jsonObj))tracker={name:f.name,readAt:new Date(f.lastModified||Date.now()).toISOString()};}catch(e){jsonError=f.name+' is not valid JSON: '+e.message;}}
+    else{const rows=H.parseCSV(text);const kind=H.classifyCSV(rows,f.name);if(kind){tables[kind]=rows;if(kind==='items-tracker')tracker={name:f.name,readAt:new Date(f.lastModified||Date.now()).toISOString()};}else say('Could not tell what '+f.name+' is (needs, characteristics, matrix, roof, items, or a tracker export with an "Issue key" column). Check its header row.','err');}
     if(--pending===0){
-      if(jsonError){msg(jsonError+(Object.keys(tables).length?' The CSV files were not loaded either.':''),'err');return;}
-      if(jsonObj){loadFromObject(jsonObj,'Loaded '+names.filter(n=>/\.json$/i.test(n)).join(', '));}
-      if(Object.keys(tables).length){const base=HOUSE;const r=H.fromCSV(tables,Object.assign(clone(base),{needs:tables.needs?[]:base.needs,characteristics:tables.characteristics?[]:base.characteristics,relationships:tables.matrix?{}:base.relationships,roof:tables.roof?{}:base.roof,items:tables.items?{}:base.items}));
-        if(r.errors.length){msg('CSV not loaded. '+r.errors.join(' '),'err');return;}
-        setHouse(r.house);msg('Loaded '+Object.keys(tables).join(', ')+' from CSV.'+(r.warnings.length?'\nWarnings: '+r.warnings.join(' '):''),r.warnings.length?'warn':'ok');}
+      if(jsonError){say(jsonError+(Object.keys(tables).length?' The CSV files were not loaded either.':''),'err');return;}
+      if(jsonObj&&Array.isArray(jsonObj)){const r=H.importItems(HOUSE,jsonObj,{mapping:'jira',source:'JSON export '+jsonName,readAt:tracker.readAt});const n=H.normalize(HOUSE);setHouse(n.house);say(importSummary(r,jsonName)+(n.warnings.length?'\nWarnings: '+n.warnings.join(' '):''),'ok');}
+      else if(jsonObj){loadFromObject(jsonObj,'Loaded '+jsonName);if(where==='daily')toast('Loaded '+jsonName);}
+      if(Object.keys(tables).length){const base=HOUSE;const r=H.fromCSV(tables,Object.assign(clone(base),{needs:tables.needs?[]:base.needs,characteristics:tables.characteristics?[]:base.characteristics,relationships:tables.matrix?{}:base.relationships,roof:tables.roof?{}:base.roof,items:tables.items?{}:base.items}),tracker?{source:'CSV export '+tracker.name,readAt:tracker.readAt}:{});
+        if(r.errors.length){say('CSV not loaded. '+r.errors.join(' '),'err');return;}
+        setHouse(r.house);const parts=Object.keys(tables).filter(k=>k!=='items-tracker');
+        say((parts.length?'Loaded '+parts.join(', ')+' from CSV. ':'')+(r.import?importSummary(r.import,tracker.name):'')+(r.warnings.length?'\nWarnings: '+r.warnings.join(' '):''),r.warnings.length?'warn':'ok');}
     }};rd.readAsText(f);});
 }
 $('in-file').addEventListener('change',e=>{readFiles(e.target.files);e.target.value='';});
+$('dy-file').addEventListener('change',e=>{readFiles(e.target.files,'daily');e.target.value='';});
+const dyStrip=$('dy-strip');
+['dragenter','dragover'].forEach(ev=>dyStrip.addEventListener(ev,e=>{e.preventDefault();dyStrip.classList.add('on');}));
+['dragleave','drop'].forEach(ev=>dyStrip.addEventListener(ev,e=>{e.preventDefault();dyStrip.classList.remove('on');}));
+dyStrip.addEventListener('drop',e=>{readFiles(e.dataTransfer.files,'daily');});
 const drop=$('in-drop');
 ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('on');}));
 ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('on');}));
 drop.addEventListener('drop',e=>{readFiles(e.dataTransfer.files);});
 function dl(name,text,type,bom){const b=new Blob([(bom?H.BOM:'')+text],{type:type||'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
 const slug=()=>(HOUSE.title||'house').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'house';
-const today=()=>new Date().toISOString().slice(0,10);
+const today=()=>H.todayLocal();
 $('out-json').addEventListener('click',()=>dl(slug()+'.json',JSON.stringify(HOUSE,null,2),'application/json'));
 $('out-md').addEventListener('click',()=>dl(slug()+'.md',H.toMarkdown(HOUSE,{mode:P.mode,symbols:P.disp==='sym'}),'text/markdown'));
 $('out-tsv').addEventListener('click',()=>dl(slug()+'-'+today()+'.tsv',tsvText(),'text/tab-separated-values',true));
 $('out-csv').addEventListener('click',()=>{const files=H.toCSV(HOUSE);let i=0;Object.keys(files).forEach(f=>{setTimeout(()=>dl(f,files[f],'text/csv',true),i++*300);});toast('Five CSV files on their way');});
 $('in-reset').addEventListener('click',()=>{if(!HOUSE0)return;if(!confirm('Throw away every edit since the file was loaded?'))return;setHouse(clone(HOUSE0));toast('Back to the loaded file');});
 
-const NEED_COLS=[['id','Id','idf'],['need','Need (WHAT)','txt'],['short','Short label','txt'],['source','Source','txt'],['importance','Imp.','n2'],['today','Today','n2'],['goal','Goal','n2'],['links','Links','txt'],['why','Why it matters','area']];
-const HOW_COLS=[['id','Id','idf'],['name','Characteristic (HOW)','txt'],['short','Short label','txt'],['unit','Unit','txt'],['direction','Dir.','dir'],['target','Target','txt'],['targetShort','Target, short','txt'],['today','Today','txt'],['todayShort','Today, short','txt'],['links','Links','txt'],['difficulty','Diff.','n2'],['gate','Gate','chk']];
-const ITEM_COLS=[['key','Key','idf'],['title','Title','txt'],['status','Status','txt'],['due','Due (YYYY-MM-DD)','txt'],['effort','Effort','n2'],['tested','Tested','tested'],['note','Note','area']];
+const NEED_COLS=[['id','Id','idf'],['need','Need (WHAT)','txt','what'],['short','Short label','txt'],['source','Source','txt'],['importance','Imp.','n2'],['today','Today','n2'],['goal','Goal','n2'],['links','Links','txt'],['why','Why it matters','area']];
+const HOW_COLS=[['id','Id','idf'],['name','Characteristic (HOW)','txt','how'],['short','Short label','txt'],['unit','Unit','txt'],['direction','Dir.','dir'],['target','Target','txt'],['targetShort','Target, short','txt'],['today','Today','txt'],['todayShort','Today, short','txt'],['links','Links','txt'],['difficulty','Diff.','n2'],['gate','Gate','chk']];
+const ITEM_COLS=[['key','Key','idf'],['title','Title','txt'],['status','Status','txt'],['due','Due (YYYY-MM-DD)','txt'],['effort','Effort','n2'],['tested','Tested','tested'],['retested','Retested on','txt'],['updated','Tracker updated','txt'],['note','Note','area']];
+const th=c=>`<th${c[3]?` data-t="${c[3]}"`:''}>${esc(c[3]?t(c[3]):c[1])}</th>`;
 function fieldHtml(kind,i,f,type,v){
   const d=`data-kind="${kind}" data-i="${i}" data-f="${f}"`;
   if(type==='area')return `<textarea ${d}>${esc(v)}</textarea>`;
@@ -1122,19 +1196,19 @@ function fieldHtml(kind,i,f,type,v){
   if(type==='idf')return `<input class="idf" ${d} value="${esc(v)}">`;
   if(type==='dir')return `<select ${d}>${H.DIRS.map(x=>`<option value="${x}"${v===x?' selected':''}>${x}</option>`).join('')}</select>`;
   if(type==='chk')return `<input type="checkbox" ${d}${v?' checked':''}>`;
-  if(type==='tested')return `<select ${d}><option value="">—</option>${Object.keys(H.TESTED_CLASSES).map(x=>`<option value="${x}"${v===x?' selected':''}>${H.TESTED_CLASSES[x]}</option>`).join('')}</select>`;
+  if(type==='tested')return `<select ${d}><option value="">— no test</option>${Object.keys(H.TESTED_CLASSES).map(x=>`<option value="${x}"${v===x?' selected':''}>${H.TESTED_CLASSES[x]}</option>`).join('')}</select>`;
   return `<input ${d} value="${esc(v)}">`;
 }
 function renderInput(){
   $('m-title').value=HOUSE.title;$('m-sub').value=HOUSE.subtitle;$('m-date').value=HOUSE.meta.date||'';$('m-author').value=HOUSE.meta.author||'';$('m-today').value=HOUSE.meta.todayLabel||'';
   $('m-scale').value=Object.keys(HOUSE.statusScale).map(k=>k+'='+HOUSE.statusScale[k]).join(', ');
-  $('ed-needs').innerHTML=`<thead><tr>${NEED_COLS.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>${HOUSE.needs.map((w,i)=>`<tr>${NEED_COLS.map(c=>`<td>${fieldHtml('need',i,c[0],c[2],w[c[0]])}</td>`).join('')}<td><button class="del" data-del="need" data-i="${i}" title="Remove">✕</button></td></tr>`).join('')}</tbody>`;
-  $('ed-hows').innerHTML=`<thead><tr>${HOW_COLS.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>${HOUSE.characteristics.map((h,i)=>`<tr>${HOW_COLS.map(c=>`<td>${fieldHtml('how',i,c[0],c[2],h[c[0]])}</td>`).join('')}<td><button class="del" data-del="how" data-i="${i}" title="Remove">✕</button></td></tr>`).join('')}</tbody>`;
+  $('ed-needs').innerHTML=`<thead><tr>${NEED_COLS.map(th).join('')}<th></th></tr></thead><tbody>${HOUSE.needs.map((w,i)=>`<tr>${NEED_COLS.map(c=>`<td>${fieldHtml('need',i,c[0],c[2],w[c[0]])}</td>`).join('')}<td><button class="del" data-del="need" data-i="${i}" title="Remove">✕</button></td></tr>`).join('')}</tbody>`;
+  $('ed-hows').innerHTML=`<thead><tr>${HOW_COLS.map(th).join('')}<th></th></tr></thead><tbody>${HOUSE.characteristics.map((h,i)=>`<tr>${HOW_COLS.map(c=>`<td>${fieldHtml('how',i,c[0],c[2],h[c[0]])}</td>`).join('')}<td><button class="del" data-del="how" data-i="${i}" title="Remove">✕</button></td></tr>`).join('')}</tbody>`;
   const props=HOUSE.proposals||[];
   $('ed-props').innerHTML=props.length?`<thead><tr><th>Id</th><th>What</th><th>By</th><th>When</th><th>Note</th><th>Evidence</th><th></th></tr></thead><tbody>${props.map(p=>`<tr><td>${esc(p.id)}</td><td><b>${esc(H.describeProposal(p))}</b></td><td>${esc(p.by)}</td><td>${esc(String(p.when).slice(0,16).replace('T',' '))}</td><td>${esc(p.note)}</td><td>${esc(p.evidence)}</td><td><button class="ok" data-confirm="${esc(p.id)}">Confirm</button><button class="no" data-reject="${esc(p.id)}">Reject</button></td></tr>`).join('')}</tbody>`:'';
   $('prop-hint').textContent=props.length?`${props.length} waiting. Confirming applies the value and records who proposed it and who confirmed (${whoami()}: set the author field above so it is your name).`:'None waiting. An agent connected to the MCP server proposes room cells and roof pairs here; cells with a pending proposal show a ? in the House.';
   const ik=Object.keys(HOUSE.items);
-  $('ed-items').innerHTML=`<thead><tr>${ITEM_COLS.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>${ik.map((k,i)=>{const it=HOUSE.items[k];return `<tr>${ITEM_COLS.map(c=>`<td>${fieldHtml('item',i,c[0],c[2],c[0]==='key'?k:it[c[0]])}</td>`).join('')}<td><button class="del" data-del="item" data-i="${i}" title="Remove">✕</button></td></tr>`;}).join('')}</tbody>`;
+  $('ed-items').innerHTML=`<thead><tr>${ITEM_COLS.map(th).join('')}<th></th></tr></thead><tbody>${ik.map((k,i)=>{const it=HOUSE.items[k];return `<tr>${ITEM_COLS.map(c=>`<td>${fieldHtml('item',i,c[0],c[2],c[0]==='key'?k:it[c[0]])}</td>`).join('')}<td><button class="del" data-del="item" data-i="${i}" title="Remove">✕</button></td></tr>`;}).join('')}</tbody>`;
 }
 let editT=0;
 function afterListEdit(){clearTimeout(editT);editT=setTimeout(()=>{reindex();setLists();build();update();fillAdd();renderHeader();save();},250);}
@@ -1168,19 +1242,29 @@ document.getElementById('view-input').addEventListener('click',e=>{
 function nextId(prefix,list){let n=list.length+1;while(list.some(x=>x.id===prefix+n)||HOUSE.needs.some(x=>x.id===prefix+n)||HOUSE.characteristics.some(x=>x.id===prefix+n))n++;return prefix+n;}
 $('add-need').addEventListener('click',()=>{const id=nextId('W',HOUSE.needs);HOUSE.needs.push({id,need:'',short:'',source:'',importance:3,today:1,goal:5,links:'',why:''});HOUSE.relationships[id]={};P.order=null;renderInput();afterListEdit();});
 $('add-how').addEventListener('click',()=>{const id=nextId('H',HOUSE.characteristics);HOUSE.characteristics.push({id,name:'',short:'',unit:'',direction:'↑',target:'',targetShort:'',today:'',todayShort:'',links:'',difficulty:3,gate:false});P.order=null;renderInput();afterListEdit();});
-$('add-item').addEventListener('click',()=>{let n=Object.keys(HOUSE.items).length+1;while(HOUSE.items['ITEM-'+n])n++;HOUSE.items['ITEM-'+n]={title:'',status:'To Do',due:'',effort:'',tested:'',note:''};renderInput();afterListEdit();});
+$('add-item').addEventListener('click',()=>{let n=Object.keys(HOUSE.items).length+1;while(HOUSE.items['ITEM-'+n])n++;HOUSE.items['ITEM-'+n]={title:'',status:'To Do',due:'',effort:'',tested:'',retested:'',updated:'',resolved:'',priority:'',sprint:'',note:''};renderInput();afterListEdit();});
 
-// ---------- views, tooltip, toast, fit ----------
-const VIEWS=['input','house','diag','items','needs','hows','roof','legend'];
-function showView(v){
-  if(!VIEWS.includes(v))v='house';
-  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.view===v));
-  VIEWS.forEach(x=>{$('view-'+x).hidden=x!==v;});
-  if(v==='house')requestAnimationFrame(fitHouse);
-  if(v==='diag'&&diagDirty)renderDiag();
+// ---------- screens and views: Daily (the board) or Planning (the House, the Diagonal and the lists); the hash is #daily or #planning/<tab> ----------
+const PLAN_TABS=['input','house','diag','needs','hows','roof','legend'];
+function parseHash(h){h=String(h||'').replace(/^#/,'');if(!h)return null;if(h==='daily'||h==='items')return {screen:'daily'};const m=h.match(/^planning(?:\/([a-z]+))?$/);if(m)return {screen:'planning',tab:PLAN_TABS.includes(m[1])?m[1]:P.tab};if(PLAN_TABS.includes(h))return {screen:'planning',tab:h};return null;}
+const hashFor=()=>SCREEN==='daily'?'#daily':'#planning/'+P.tab;
+function show(o){
+  SCREEN=o.screen==='planning'?'planning':'daily';if(PLAN_TABS.includes(o.tab))P.tab=o.tab;if(!PLAN_TABS.includes(P.tab))P.tab='house';P.screen=SCREEN;
+  document.querySelectorAll('.mode').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===SCREEN));
+  $('plan-tabs').hidden=SCREEN!=='planning';
+  document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected',SCREEN==='planning'&&x.dataset.view===P.tab));
+  $('view-daily').hidden=SCREEN!=='daily';
+  PLAN_TABS.forEach(x=>{$('view-'+x).hidden=!(SCREEN==='planning'&&x===P.tab);});
+  applyTerms();
+  if(SCREEN==='planning'&&P.tab==='house')requestAnimationFrame(fitHouse);
+  if(SCREEN==='planning'&&P.tab==='diag'&&diagDirty)renderDiag();
+  save();try{history.replaceState(null,'',hashFor());}catch(err){}
 }
-document.querySelector('.tabs').addEventListener('click',e=>{const t=e.target.closest('.tab');if(!t)return;showView(t.dataset.view);try{history.replaceState(null,'','#'+t.dataset.view);}catch(err){}});
-window.addEventListener('hashchange',()=>showView(location.hash.replace('#','')));
+function showView(v){if(v==='daily'||v==='items')show({screen:'daily'});else show({screen:'planning',tab:PLAN_TABS.includes(v)?v:'house'});}
+document.querySelector('.modes').addEventListener('click',e=>{const b=e.target.closest('.mode');if(!b)return;show({screen:b.dataset.mode});});
+$('plan-tabs').addEventListener('click',e=>{const x=e.target.closest('.tab');if(!x)return;show({screen:'planning',tab:x.dataset.view});});
+window.addEventListener('hashchange',()=>{const o=parseHash(location.hash);if(o)show(o);});
+$('terms').addEventListener('change',e=>{P.terms=['plain','qfd'].includes(e.target.value)?e.target.value:'auto';save();applyTerms();toast(P.terms==='auto'?'Words: plain on Daily, QFD on Planning':P.terms==='plain'?'Plain words everywhere (exports keep the QFD words)':'QFD words everywhere');});
 const tip=$('tip');
 function showTip(e,text){tip.textContent='';String(text).split('\n').forEach((line,k)=>{if(k)tip.appendChild(document.createElement('br'));tip.appendChild(document.createTextNode(line));});tip.classList.add('on');moveTip(e);}
 function moveTip(e){const pad=12;let x=e.clientX+pad,y=e.clientY+pad;const r=tip.getBoundingClientRect();if(x+r.width>window.innerWidth-8)x=e.clientX-r.width-pad;if(y+r.height>window.innerHeight-8)y=e.clientY-r.height-pad;tip.style.left=Math.max(4,x)+'px';tip.style.top=Math.max(4,y)+'px';}
@@ -1203,11 +1287,13 @@ function fitHouse(){
 }
 
 // ---------- boot ----------
-loadPrefs();
+loadPrefs();if(!['auto','plain','qfd'].includes(P.terms))P.terms='auto';
+let startedBlank=false;
 if(loadStored()){reindex();setLists();build();update();renderInput();fillAdd();renderHeader();}
 else if(window.HOQ_SAMPLE){loadFromObject(clone(window.HOQ_SAMPLE),'Sample loaded');}
-else{const e=H.blank();e.needs=[{id:'W1',need:'First need',short:'First need',source:'',importance:3,today:1,goal:5,links:'',why:''}];e.characteristics=[{id:'H1',name:'First characteristic',short:'First characteristic',unit:'',direction:'↑',target:'',targetShort:'',today:'',todayShort:'',links:'',difficulty:3,gate:false}];loadFromObject(e,'Empty house');}
-showView(location.hash.replace('#',''));
+else{const e=H.blank();e.needs=[{id:'W1',need:'First need',short:'First need',source:'',importance:3,today:1,goal:5,links:'',why:''}];e.characteristics=[{id:'H1',name:'First characteristic',short:'First characteristic',unit:'',direction:'↑',target:'',targetShort:'',today:'',todayShort:'',links:'',difficulty:3,gate:false}];loadFromObject(e,'Empty house');startedBlank=true;}
+{const o=parseHash(location.hash);
+ if(o)show(o);else if(startedBlank)show({screen:'planning',tab:'input'});else if(P.screen==='daily'||P.screen==='planning')show({screen:P.screen,tab:P.tab});else if(Object.keys(HOUSE.items).length)show({screen:'daily'});else show({screen:'planning',tab:'house'});}
 fitHouse();
 let rz=0;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(fitHouse,80);});
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitHouse);
