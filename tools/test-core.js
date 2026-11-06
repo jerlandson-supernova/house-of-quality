@@ -22,6 +22,7 @@ eq(back.house.roof, h.roof, 'csv round trip keeps the roof');
 eq(Object.keys(back.house.items).length, Object.keys(h.items).length, 'csv round trip keeps the items');
 ok(back.house.characteristics[2].gate === true, 'gate survives csv');
 eq(H.parseCSV('a,b\n"x, y","he said ""hi"""\n'), [['a', 'b'], ['x, y', 'he said "hi"']], 'csv quotes');
+eq(H.parseCSV(H.BOM + 'a,b\n1,2\n'), [['a', 'b'], ['1', '2']], 'a byte-order mark is stripped on read');
 // compute: ranks skip gates, weights match a hand sum
 const C = H.compute(h.needs, h.characteristics, h.relationships, {});
 eq(C.abs[1], 81, 'H2 weight'); ok(C.rank[1] === 1 && C.gate[2] && C.rank[2] === 0, 'rank and gate');

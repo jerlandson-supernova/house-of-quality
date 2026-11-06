@@ -48,7 +48,7 @@ if (cmd === 'tsv') {
   const { house } = loadHouse(a1);
   const C = H.compute(house.needs, house.characteristics, house.relationships, { mode: flags.includes('--gap') ? 'gap' : 'importance' });
   const out = a2 && !a2.startsWith('--') ? a2 : `${path.basename(a1, '.json')}-${today()}.tsv`;
-  fs.writeFileSync(out, H.toTSV(house, C));
+  fs.writeFileSync(out, H.BOM + H.toTSV(house, C));
   console.log('wrote', out);
 }
 if (cmd === 'csv') {
@@ -56,7 +56,7 @@ if (cmd === 'csv') {
   const dir = a2 || '.';
   fs.mkdirSync(dir, { recursive: true });
   const files = H.toCSV(house);
-  Object.keys(files).forEach(f => fs.writeFileSync(path.join(dir, f), files[f]));
+  Object.keys(files).forEach(f => fs.writeFileSync(path.join(dir, f), H.BOM + files[f]));
   console.log('wrote', Object.keys(files).join(', '), 'in', dir);
 }
 if (cmd === 'from-csv') {

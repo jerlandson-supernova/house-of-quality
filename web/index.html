@@ -1103,13 +1103,13 @@ const drop=$('in-drop');
 ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('on');}));
 ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('on');}));
 drop.addEventListener('drop',e=>{readFiles(e.dataTransfer.files);});
-function dl(name,text,type){const b=new Blob([text],{type:type||'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
+function dl(name,text,type,bom){const b=new Blob([(bom?H.BOM:'')+text],{type:type||'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
 const slug=()=>(HOUSE.title||'house').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'house';
 const today=()=>new Date().toISOString().slice(0,10);
 $('out-json').addEventListener('click',()=>dl(slug()+'.json',JSON.stringify(HOUSE,null,2),'application/json'));
 $('out-md').addEventListener('click',()=>dl(slug()+'.md',H.toMarkdown(HOUSE,{mode:P.mode,symbols:P.disp==='sym'}),'text/markdown'));
-$('out-tsv').addEventListener('click',()=>dl(slug()+'-'+today()+'.tsv',tsvText(),'text/tab-separated-values'));
-$('out-csv').addEventListener('click',()=>{const files=H.toCSV(HOUSE);let i=0;Object.keys(files).forEach(f=>{setTimeout(()=>dl(f,files[f],'text/csv'),i++*300);});toast('Five CSV files on their way');});
+$('out-tsv').addEventListener('click',()=>dl(slug()+'-'+today()+'.tsv',tsvText(),'text/tab-separated-values',true));
+$('out-csv').addEventListener('click',()=>{const files=H.toCSV(HOUSE);let i=0;Object.keys(files).forEach(f=>{setTimeout(()=>dl(f,files[f],'text/csv',true),i++*300);});toast('Five CSV files on their way');});
 $('in-reset').addEventListener('click',()=>{if(!HOUSE0)return;if(!confirm('Throw away every edit since the file was loaded?'))return;setHouse(clone(HOUSE0));toast('Back to the loaded file');});
 
 const NEED_COLS=[['id','Id','idf'],['need','Need (WHAT)','txt'],['short','Short label','txt'],['source','Source','txt'],['importance','Imp.','n2'],['today','Today','n2'],['goal','Goal','n2'],['links','Links','txt'],['why','Why it matters','area']];

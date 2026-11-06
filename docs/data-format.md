@@ -103,7 +103,7 @@ A links field is free text. Keys are read from it as follows: a segment such as 
 
 ## CSV
 
-Five files, UTF-8, comma-separated, quotes for fields with commas. The Input tab and `from-csv` recognise each file by its header row, so the file names are free.
+Five files, UTF-8 with a byte-order mark (so Excel opens them as UTF-8; the readers strip it), comma-separated, quotes for fields with commas. The Input tab and `from-csv` recognise each file by its header row, so the file names are free.
 
 | File | Header |
 |---|---|
@@ -119,4 +119,4 @@ Any subset can be loaded; the parts you do not load keep what the page already h
 
 ## TSV
 
-`Download TSV` on the Input tab, `Copy as TSV` on the House, and `tools/hoq.js tsv` write one tab-separated table: a first row with the title, the export date, the data date, the scoring mode, the row order and the gates; then the house with the room, the right wall, the basement and the roof pairs. It pastes into Excel or Sheets as a sheet. It is the file to send: dated, with its scoring mode on it, so two readers never argue about which version they have.
+`Download TSV` on the Input tab, `Copy as TSV` on the House, and `tools/hoq.js tsv` write one tab-separated table: a first row with the title, the export date, the data date, the scoring mode, the row order and the gates; then the house with the room, the right wall, the basement and the roof pairs. The file starts with a UTF-8 byte-order mark, so Excel on Windows reads the arrows and symbols instead of guessing the local codepage; pasting from the clipboard needs none. It is the file to send: dated, with its scoring mode on it, so two readers never argue about which version they have.

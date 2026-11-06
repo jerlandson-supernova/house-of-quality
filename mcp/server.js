@@ -211,11 +211,11 @@ server.registerTool('house_draw', { title: 'Draw the house as SVG', description:
 server.registerTool('house_export', { title: 'Export', description: 'Write the house as the dated TSV (the version of record), the five CSV files, JSON, Markdown, an SVG drawing, or the Excel workbook (needs python3 and openpyxl).',
   inputSchema: { format: z.enum(['tsv', 'csv', 'json', 'md', 'svg', 'xlsx']), path: z.string().describe('file path, or a folder for csv'), mode: z.enum(['importance', 'gap']).default('importance') } },
   async ({ format, path: p, mode }) => { try { p = safePath(p); } catch (e) { return fail(e.message); } const c = C(mode);
-    if (format === 'tsv') { fs.writeFileSync(p, H.toTSV(house, c)); appendLog('export', 'tsv ' + p); return text('Wrote ' + p); }
+    if (format === 'tsv') { fs.writeFileSync(p, H.BOM + H.toTSV(house, c)); appendLog('export', 'tsv ' + p); return text('Wrote ' + p); }
     if (format === 'json') { fs.writeFileSync(p, JSON.stringify(house, null, 2)); return text('Wrote ' + p); }
     if (format === 'md') { fs.writeFileSync(p, H.toMarkdown(house, { mode })); return text('Wrote ' + p); }
     if (format === 'svg') { fs.writeFileSync(p, H.toSVG(house, { mode })); return text('Wrote ' + p); }
-    if (format === 'csv') { fs.mkdirSync(p, { recursive: true }); const files = H.toCSV(house); Object.keys(files).forEach(f => fs.writeFileSync(path.join(p, f), files[f])); return text('Wrote ' + Object.keys(files).join(', ') + ' in ' + p); }
+    if (format === 'csv') { fs.mkdirSync(p, { recursive: true }); const files = H.toCSV(house); Object.keys(files).forEach(f => fs.writeFileSync(path.join(p, f), H.BOM + files[f])); return text('Wrote ' + Object.keys(files).join(', ') + ' in ' + p); }
     const tmp = path.join(require('os').tmpdir(), 'hoq-' + process.pid + '-' + Date.now() + '.json'); fs.writeFileSync(tmp, JSON.stringify(house));
     try { const r = spawnSync('python3', [path.join(__dirname, '..', 'tools', 'make_xlsx.py'), tmp, p].concat(mode === 'gap' ? ['--gap'] : []), { encoding: 'utf8', env: process.env });
       if (r.error || r.status !== 0) return fail('make_xlsx.py failed: ' + ((r.error && r.error.message) || r.stderr || r.stdout || 'is openpyxl installed? pip install openpyxl'));

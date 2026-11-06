@@ -19,6 +19,7 @@ const TESTED_CLASSES = { verified: 'Verified', partial: 'Partial', failed: 'Fail
 const num = (v, d) => { const n = typeof v === 'number' ? v : parseFloat(v); return Number.isFinite(n) ? n : d; };
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Math.round(v)));
 const str = v => (v === undefined || v === null) ? '' : String(v);
+const BOM = '\uFEFF'; // put in front of a TSV or CSV file: Excel on Windows otherwise reads ↑ ↓ ◎ ≤ − in the local codepage
 const truthy = v => v === true || /^(1|true|yes|y|gate|x)$/i.test(str(v).trim());
 
 // ---------- the house: shape, defaults, validation ----------
@@ -671,5 +672,5 @@ function blocks(P,k,total){
 return { REL_VALUES, ROOF_VALUES, DIRS, SYM, WORD, ROOF_WORD, DEFAULT_STATUS_SCALE, TESTED_CLASSES, CSV_HEADERS,
   blank, normalize, compute, rankText, relMatrix, linksOf, itemShares, progress, reallyDone, toTSV,
   parseCSV, toCSVText, classifyCSV, fromCSV, toCSV, report, diagonalize, blocks, spectral, fmt1, pct,
-  toSVG, draw, reduceLists, PROPOSAL_KINDS, provKey, setProvenance, propose, confirmProposal, rejectProposal, describeProposal, nextFreeId, nextCells, toMarkdown };
+  toSVG, draw, reduceLists, PROPOSAL_KINDS, provKey, setProvenance, propose, confirmProposal, rejectProposal, describeProposal, nextFreeId, nextCells, toMarkdown, BOM };
 });
