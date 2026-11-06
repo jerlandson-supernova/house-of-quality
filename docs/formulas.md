@@ -46,7 +46,8 @@ The roof holds `++`, `+`, `−`, `−−` or blank for each pair of characterist
 | Status-weighted progress | over characteristics with at least one linked item: `Σ_j A_j × mean(statusScale[status of each linked item]) ÷ Σ_j A_j` |
 | Coverage | `Σ_j A_j over characteristics with items ÷ Σ_j A_j` |
 | Effort left | `Σ effort of items whose status weight < 1` |
-| Past due | items with `due < meta.date` (or today when `meta.date` is empty) and status weight `< 1` |
+| As-of day | the local date of `meta.boardRead` when a tracker import recorded one, else `meta.date`, else today (the local calendar date). The page, the CLI and the server say which of the three it was. |
+| Past due | items with `due < as-of day` and status weight `< 1`; days late = the whole days between the two dates |
 
 The right-wall measure says how far the needs have moved from poor towards their goals, in the stakeholders' own scores. The status measure says what the board claims, weighted by how much of the house each item carries. When the two disagree by much, one of them is wrong, and it is usually the board.
 
@@ -56,7 +57,10 @@ The right-wall measure says how far the needs have moved from poor towards their
 |---|---|
 | Item share | for each characteristic *j* that links the item, add `A_j ÷ (number of items j links to)`; divide by `Σ_j A_j` |
 | Serves | the characteristics and needs whose links name the item; gates marked |
-| Really done? | the status weight read against `tested`: done + verified = holds; done + partial = done with open clauses; done + failed or not built = overstated; not done + verified = understated; otherwise matches |
+| Really done? | the status weight read against `tested`. No verdict: "no test yet". Done (weight 1): verified = holds, partial = done with open clauses, fails or not built = overstated. Nearly done (weight ≥ 0.8): verified = holds so far, partial = partly, fails = not yet, not built = overstated. Anything less: verified = understated, fails = not yet, otherwise matches. |
+| Changed since the test | `updated` and `retested` both set, and the local date of `updated` is after `retested`: the tracker touched the item after the test it was last judged by, so the verdict needs a retest. Shown as a badge; counted on Daily. |
+| Gate state | per must-pass gate: no linked item = "no item"; every linked item Done and verified = clear; otherwise blocked |
+| Board against tests | the items whose "Really done?" is anything but holds, holds so far, matches or no test yet, plus the items changed since the test; ordered overstated, not yet, open clauses, partly, understated, stale |
 
 An item linked only from a need has no share: the weights live on the characteristics, and a need's links only say where to look.
 

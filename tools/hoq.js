@@ -10,6 +10,10 @@
  *   node tools/hoq.js md        house.json [out.md] [--numbers] [--gap]             the Markdown report (for an agent or a person)
  *   node tools/hoq.js next      house.json [--limit=N]  the empty cells worth looking at, and the structural gaps
  *   node tools/hoq.js skills    install|uninstall|list [--target claude|codex|cursor|copilot|gemini|agents-md|all] [--project DIR | --user] [--force] [--dry-run]
+ *   node tools/hoq.js daily     house.json              the daily read: gates, what to do next, where the board and the tests disagree, overdue
+ *   node tools/hoq.js import-items house.json export.csv|rows.json [--write | --out F] [--add-all] [--mapping jira|items]
+ *                                                       merge a tracker export (a Jira CSV, or a JSON array of its rows) into the items: statuses,
+ *                                                       due dates, points; your verdicts, retest dates and notes are kept. Prints the diff; writes only with --write or --out
  *   node tools/hoq.js diag      house.json              the diagonal order and measures as JSON (used by tools/make_xlsx.py)
  *   node tools/hoq.js sample-js house.json out.js       write the house as window.HOQ_SAMPLE = … for the web page
  */
@@ -20,7 +24,7 @@ const H = require(path.join(__dirname, '..', 'web', 'hoq-core.js'));
 
 const [cmd, a1, a2] = process.argv.slice(2);
 const flags = process.argv.slice(2).filter(x => x.startsWith('--'));
-if (!cmd || (!a1 && cmd !== 'skills')) { console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(1, 15).join('\n').replace(/^ \*\s?/gm, '')); process.exit(1); }
+if (!cmd || (!a1 && cmd !== 'skills')) { console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(1, 19).join('\n').replace(/^ \*\s?/gm, '')); process.exit(1); }
 
 function loadHouse(file) {
   const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -28,7 +32,7 @@ function loadHouse(file) {
   if (errors.length) { console.error('Errors:\n  ' + errors.join('\n  ')); process.exit(2); }
   return { house, warnings };
 }
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => H.todayLocal();
 
 if (cmd === 'validate') {
   const raw = JSON.parse(fs.readFileSync(a1, 'utf8'));
@@ -115,6 +119,29 @@ if (cmd === 'skills') {
   else { console.error('skills: install, uninstall or list; --target claude|codex|cursor|copilot|gemini|agents-md|all; --project DIR or --user; --force; --dry-run'); process.exit(1); }
   } catch (e) { console.error('skills: ' + e.message); process.exit(1); }
 }
+if (cmd === 'daily') {
+  const { house, warnings } = loadHouse(a1);
+  console.log(H.boardText(house).join('\n'));
+  if (warnings.length) console.log('\nWarnings:\n  ' + warnings.join('\n  '));
+}
+if (cmd === 'import-items') {
+  // Statuses are facts from the tracker: they are merged into the items as they are. Verdicts (tested, retested) and notes are yours and are never touched.
+  const { house } = loadHouse(a1);
+  if (!a2 || a2.startsWith('--')) { console.error('import-items: give the export file (a Jira CSV, or a JSON array of its rows)'); process.exit(1); }
+  const textIn = fs.readFileSync(a2, 'utf8');
+  const mi = process.argv.indexOf('--mapping');
+  let rows, mappingArg = (flags.find(f => f.startsWith('--mapping=')) || '').slice(10) || (mi >= 0 ? process.argv[mi + 1] || '' : '');
+  if (/^\s*\[/.test(textIn.replace(/^\uFEFF/, ''))) { rows = JSON.parse(textIn.replace(/^\uFEFF/, '')); if (!mappingArg) mappingArg = 'jira'; }
+  else { const parsed = H.parseCSV(textIn); const kind = H.classifyCSV(parsed, a2); if (!mappingArg) mappingArg = kind === 'items' ? 'items' : 'jira'; rows = H.records(parsed); }
+  if (!['jira', 'items'].includes(mappingArg)) { console.error('import-items: --mapping must be jira or items'); process.exit(1); }
+  const stat = fs.statSync(a2);
+  const r = H.importItems(house, rows, { mapping: mappingArg, add: flags.includes('--add-all') ? 'all' : 'linked', source: path.basename(a2), readAt: stat.mtime.toISOString() });
+  console.log(`Merging ${path.basename(a2)} (${mappingArg} columns, read ${stat.mtime.toISOString()}) into ${a1}:`);
+  console.log(H.importText(r).join('\n'));
+  const outFlag = process.argv.indexOf('--out'); const outFile = outFlag >= 0 ? process.argv[outFlag + 1] : (flags.find(f => f.startsWith('--out=')) || '').slice(6) || (flags.includes('--write') ? a1 : '');
+  if (outFile) { const n = H.normalize(house); if (n.errors.length) { console.error('Errors:\n  ' + n.errors.join('\n  ')); process.exit(2); } fs.writeFileSync(outFile, JSON.stringify(n.house, null, 2)); console.log('wrote', outFile, '· board read', n.house.meta.boardRead); if (n.warnings.length) console.log('Warnings:\n  ' + n.warnings.join('\n  ')); }
+  else console.log('Dry run: nothing written. Add --write to update ' + a1 + ', or --out FILE.');
+}
 if (cmd === 'diag') {
   const { house } = loadHouse(a1);
   const use = flags.includes('--strong') ? 'strong' : 'all';
@@ -142,4 +169,4 @@ if (cmd === 'sample-js') {
   fs.writeFileSync(a2 || 'web/sample-house.js', 'window.HOQ_SAMPLE=' + JSON.stringify(house, null, 1) + ';\n');
   console.log('wrote', a2 || 'web/sample-house.js');
 }
-if (!['validate', 'report', 'tsv', 'csv', 'from-csv', 'svg', 'md', 'next', 'skills', 'diag', 'sample-js'].includes(cmd)) { console.error('unknown command', cmd); process.exit(1); }
+if (!['validate', 'report', 'tsv', 'csv', 'from-csv', 'svg', 'md', 'next', 'skills', 'daily', 'import-items', 'diag', 'sample-js'].includes(cmd)) { console.error('unknown command', cmd); process.exit(1); }

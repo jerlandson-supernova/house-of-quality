@@ -1,14 +1,14 @@
 # House of Quality
 
-An interactive House of Quality (the first QFD matrix) with every formula written down, a diagonalised view that finds the modules and couplings in a design, a work-items view that checks "done" against your own tests, a spreadsheet generator with live formulas, **and an MCP server, so an AI agent can build, fill, read and export the house through tools.**
+An interactive House of Quality (the first QFD matrix) with every formula written down, a diagonalised view that finds the modules and couplings in a design, a Daily screen that reads the tracker's statuses against your own tests (what blocks go-live, what to do next, where the tracker is wrong, what is overdue), a spreadsheet generator with live formulas, **and an MCP server, so an AI agent can build, fill, read and export the house through tools.**
 
 Three ways in:
 
 | | |
 |---|---|
-| **A person** | opens `web/index.html`. Nothing to install: the sample loads, the Input tab takes your JSON or CSV, every cell is clickable. |
+| **A person** | opens `web/index.html`. Nothing to install: the sample loads, Daily shows the board against the tests in plain words, Planning holds the House in the QFD words, the Input tab takes your JSON or CSV, every cell is clickable. |
 | **A script** | runs `node tools/hoq.js` for reports, the dated TSV, CSV, SVG and the diagonal order, and `tools/make_xlsx.py` for the Excel workbook. |
-| **An AI agent** | connects to `mcp/server.js` over the Model Context Protocol and runs a QFD session with a stakeholder: 29 tools, four resources and a session prompt, on the same code the page runs. What it proposes, a person confirms. |
+| **An AI agent** | connects to `mcp/server.js` over the Model Context Protocol and runs a QFD session with a stakeholder: 30 tools, four resources and a session prompt, on the same code the page runs. What it proposes, a person confirms. |
 
 It was built to run a real product review: sixteen stakeholder needs against twenty measurable characteristics, with gates, tickets and a weekly version of record. This repository is the generic version of that tool, with a small sample house (a commuter travel mug) so you can see every part working before you load your own.
 
@@ -42,8 +42,8 @@ Then, in Claude Code:
 | The room and the roof | `relationship_set`, `relationships_set_many`, `roof_set` (proposals unless `--direct`) |
 | Proposals | `propose`, `proposals_list`, `proposal_confirm`, `proposal_reject`, and `house_next` for the empty cells worth looking at |
 | Assist (with `--assist`) | `assist_status`, `assist_suggest`, `assist_members`: a model's suggestions, as proposals only |
-| Work items | `item_set`, `item_remove`, `status_scale_set` |
-| Reading | `house_report`, `house_markdown` (the report to hand to a person), `house_priorities`, `house_diagonal`, `house_items`, `house_draw` |
+| Work items | `item_set`, `item_remove`, `status_scale_set`, and `items_import` to refresh statuses from a tracker export without touching the verdicts |
+| Reading | `house_report`, `house_markdown` (the report to hand to a person), `house_priorities`, `house_diagonal`, `house_items` (the daily read: gates, the next step, the board against the tests, overdue), `house_draw` |
 | Export | `house_export` as TSV, CSV, JSON, Markdown, SVG or the Excel workbook |
 
 Plus the resources `hoq://house`, `hoq://report`, `hoq://report.md` and `hoq://drawing.svg`, and a `qfd_session` prompt that walks the agent through a session in the right order. With `--file`, every change is saved to that JSON file, so the page can open the same file and the person can keep editing where the agent left off.
@@ -81,9 +81,9 @@ The Diagonal view: the same room reordered so the relationships gather along the
 
 ![The Diagonal tab](docs/images/diagonal.jpg)
 
-Work items: each item's share of the house, its board status, due date and effort, and your own test verdict read against the status.
+The work-items table, now the lower half of the Daily screen under "All work items"; above it Daily shows what blocks go-live, what to do next, where the tracker is wrong and what is overdue (screenshot to be retaken).
 
-![The Work items tab](docs/images/items.jpg)
+![The work items table](docs/images/items.jpg)
 
 The Input tab: load the sample, open or drop JSON or CSV files, paste JSON, edit the lists in place, download JSON, CSV or the dated TSV.
 
@@ -97,12 +97,12 @@ The same house drawn as SVG by `node tools/hoq.js svg`, which is also what the p
 
 | Part | Where | What it does |
 |---|---|---|
-| The page | `web/index.html` | House, Diagonal, Work items, Needs, Characteristics, Roof pairs, Legend, Input. Click any cell, dot or diamond to change it; weights and ranks follow. |
+| The page | `web/index.html` | Two screens. **Daily**: the gates and whether they are clear, what to do next, where the tracker and your tests disagree, what is overdue, and every work item, in plain words. **Planning**: the House, the Diagonal, Needs, Characteristics, Roof pairs, Legend and Input, in the QFD words (a Words select fixes either vocabulary). Click any cell, dot or diamond to change it; weights and ranks follow. |
 | The formulas | `web/hoq-core.js` | Every number the page and the workbook show, as pure functions. Node and the browser load the same file. |
 | The input screen | Input tab | Load the sample, start empty, open or drop a `.json` or the CSV files, paste JSON, edit the lists in place, download JSON, CSV, SVG or the dated TSV. |
 | The MCP server | `mcp/server.js` | Lets an AI agent build, fill, read and export a house through tools: needs, characteristics, cells, roof, items, priorities, diagonal, drawing, export. See `docs/agent.md`. |
 | The drawing API | `HOQ.toSVG`, `HOQ.draw` | Draw a house from a JSON object or URL into any element, in the spirit of JSqfd, with an option to hide rows and columns that have no relationship. `web/embed.html` shows it in two lines. |
-| The command line | `tools/hoq.js` | Validate a file, print a report, write the TSV, convert between JSON and CSV, draw the SVG, compute the diagonal order. |
+| The command line | `tools/hoq.js` | Validate a file, print a report or the daily read, write the TSV, convert between JSON and CSV, merge a tracker export, draw the SVG, compute the diagonal order. `tools/jira-pull.js` reads Jira's REST API for the same merge. |
 | The workbook | `tools/make_xlsx.py` | The same house as `.xlsx`: roof, room, right wall, basement with live formulas, the Diagonal sheet, roof pairs, legend, lists. |
 | The method | `docs/method.md` | How to run a House of Quality from the first interview to the weekly version of record: what we did, step by step. |
 | The formulas, explained | `docs/formulas.md` | Each formula, what it means, and its spreadsheet equivalent. |
@@ -129,6 +129,32 @@ node tools/hoq.js from-csv out/ house.json                # back to one JSON fil
 ```
 
 Add `--gap` to `report` or `tsv` to weight each need by importance × (goal ÷ today) instead of importance alone.
+
+## Keep statuses current
+
+The verdicts in the house are yours; the statuses belong to the tracker, so they should come from it, not from typing. Three ways, all the same merge (`HOQ.importItems`): statuses, due dates, story points, the tracker's update time, priority and sprint are refreshed; `tested`, `retested` and `note` are never touched; only keys a links field names are added (`--add-all` / `add: "all"` to add every row); and the time the export was read becomes `meta.boardRead`, the day "overdue" is judged against.
+
+**On the page.** Export the board from Jira (Issues → Export → CSV; any CSV with an "Issue key" column works) and drop the file on the Daily strip, or use its "Update statuses from a tracker export" button, or drop it on the Input tab. The strip then says where the statuses came from and when; the panels and the table recompute.
+
+**From the command line.**
+
+```bash
+node tools/hoq.js import-items house.json jira-export.csv            # dry run: prints key field old → new, what would be added, statuses not in the weights
+node tools/hoq.js import-items house.json jira-export.csv --write    # apply; --out other.json writes a copy instead
+node tools/hoq.js daily house.json                                   # the daily read as text
+```
+
+**From Jira's API.** `tools/jira-pull.js` needs node 18+ and three environment variables; it never prints the token.
+
+```bash
+export JIRA_SITE=your-site.atlassian.net JIRA_EMAIL=you@example.com JIRA_API_TOKEN=…   # token: id.atlassian.com → Security → API tokens
+node tools/jira-pull.js --house house.json            # dry run: the diff
+node tools/jira-pull.js --house house.json --write    # apply, and append items.import to house.log.jsonl
+```
+
+By default it asks for the projects the house names (`project in (MUG) ORDER BY key`) rather than `key in (…)`, which Jira refuses as a whole when one key no longer exists; `--jql "…"` overrides it, `--points-field` and `--sprint-field` name the custom fields (defaults `customfield_10016` and `customfield_10020`). The page never sees the credentials: it reads the saved `house.json`.
+
+**From an agent.** `items_import` takes the export's rows or the CSV text, with `dryRun` to see the diff first; `house_items` then returns the gates, the next step, the mismatches and the overdue list. `docs/data-format.md` has the column mapping.
 
 ## Draw a house from a JSON file
 
@@ -158,11 +184,11 @@ Write down what the stakeholders need, each with its source and an importance fr
 ## Repository layout
 
 ```
-web/            index.html (the page), hoq-core.js (the formulas and the drawing), sample-house.js (the sample, loaded by the page), embed.html (HOQ.draw example)
+web/            index.html (the page: Daily and Planning), hoq-core.js (the formulas, the board facts, the tracker merge and the drawing), sample-house.js (the sample, loaded by the page), embed.html (HOQ.draw example)
 mcp/            server.js (the MCP server), assist.js (the optional model assist), test-client.js (its test), live-check.js (one real assist call, by hand)
-tools/          hoq.js (command line), skills.js (the skills installer), make_xlsx.py (workbook), test-core.js and test-skills.js (checks)
+tools/          hoq.js (command line), jira-pull.js (statuses from Jira's REST API), skills.js (the skills installer), make_xlsx.py (workbook), test-core.js and test-skills.js (checks)
 skills/         hoq/SKILL.md (the agent skill; `tools/hoq.js skills` installs it)
-examples/       sample-house.json and the same house as five CSV files
+examples/       sample-house.json, the same house as five CSV files, and tracker-export.csv (a Jira-shaped export of its board)
 docs/           method, formulas, data format, diagonalization, agent (the MCP tools and the rules for an agent)
 ```
 

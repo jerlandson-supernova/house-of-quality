@@ -58,11 +58,12 @@ Every accepted change appends one line to the **change log**: time, actor, opera
 | `propose`, `proposals_list`, `proposal_confirm`, `proposal_reject` | Suggest any value (a cell, a roof pair, a need's importance, today or goal, or a whole new need or characteristic with its fields); list, confirm as a named person, reject with a reason. |
 | `assist_status`, `assist_suggest`, `assist_members` | With `--assist` only: a model's suggestions for cells, needs or characteristics, as proposals. |
 | `house_next` | The empty cells worth looking at: needs nothing serves, needs with no strong driver, characteristics driving nothing, then by weight. Most cells of a good house stay blank; this names the structural gaps. |
-| `item_set`, `item_remove`, `status_scale_set` | Work items with status, due date, effort and your test verdict; the status weights. |
+| `item_set`, `item_remove`, `status_scale_set` | Work items: status, due date and effort from the tracker; `tested` (verified, partial, fails, not built; `failed` is read as fails, `not retested` is dropped with a warning) with `retested`, the date of that test; `updated` from the tracker; the status weights. |
+| `items_import` | Refresh the items from a tracker export: `rows` (records keyed by the export's column names) or `csv` (a Jira CSV's text), `mapping` `jira` (default), `items` or your own `{field: column}`, `add` `linked` (default: only keys a links field names), `all` or `none`, `source`, `readAt`, `dryRun`. Statuses, due dates, points, updated, resolved, priority and sprint are merged; `tested`, `retested` and `note` are never touched. Written directly (statuses are the tracker's facts, not a judgement) and logged as `items.import` with the changes. |
 | `house_report`, `house_markdown` | The plain-text report; the full Markdown report (summary, needs, characteristics, the room, the roof, the diagonal blocks and coupling, items, pending proposals, findings, provenance). |
 | `house_priorities` | Characteristics by weighted importance with share, rank and the needs each one drives; needs with their gap share. |
 | `house_diagonal` | Blocks, coupling verdicts (strong only and all levels), what crosses the blocks, ties to cut, empty rows and columns. |
-| `house_items` | Each item's share of the house, status read against the test verdict ("really done?"), the two progress measures, past-due items. |
+| `house_items` | The daily read: `asOf` and `asOfSource` (the day lateness is judged against: board read, data date or today), `board` (source and read time), `gates` with a `clear` / `blocked` / `no item` state, `path` (the critical path with `firstOpen`), `mismatch` (where the board and the tests disagree: overstated, not yet, open clauses, partly, understated, stale), `overdue` with days late, `noItem`, `counts`, and every item with its share, status, `tested`, `retested`, `updated`, `stale` (changed since the test), `reallyDone` and `verdictClass`. |
 | `house_draw` | The house as SVG, optionally reduced to rows and columns with relationships. |
 | `house_export` | TSV (the dated version of record), CSV, JSON, Markdown, SVG or the Excel workbook. |
 
@@ -80,7 +81,7 @@ The method is in `method.md`; these are the rules that matter when a program is 
 6. **Gates are not features.** Anything that must pass before shipping (a safety limit, a legal rule) is a gate: it keeps its weight and leaves the rank.
 7. **The roof is a list of decisions.** Every − or −− belongs to someone. Say whose.
 8. **Read, then hand over.** `house_priorities` for the top five and the gates, `house_diagonal` for the modules and the build order, `house_items` when there are tickets. `house_markdown` is the report for the person. `house_export` as TSV with today's date is the version of record; the page, the JSON and the SVG are for working and looking.
-9. **A board status is a claim.** When you load tickets, add `tested` from evidence you have seen, or leave it empty. `house_items` then says where the board overstates.
+9. **A board status is a claim.** Load statuses from the tracker (`items_import` from an export, or `item_set` per ticket) and add `tested` only from evidence you have seen, with `retested` as the date of that test; otherwise leave it empty. `house_items` then says where the board overstates, which items changed on the board after their test, which gates are clear and what is overdue. Never set a verdict to make the board look right.
 
 ## Example, from the SDK
 

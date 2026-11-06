@@ -11,8 +11,10 @@ Every formula is listed in docs/formulas.md next to the number it produces.
 """
 import json
 import os
+import re
 import subprocess
 import sys
+from datetime import datetime
 
 from openpyxl import Workbook
 from openpyxl.formatting.rule import CellIsRule, FormulaRule
@@ -633,8 +635,23 @@ hw.freeze_panes = "A2"
 
 if ITEMS:
     it = wb.create_sheet("Items")
-    for c, t in enumerate(("Key", "Title", "Status", "Due", "Effort", "Tested", "Note", "Linked from"), 1):
+    for c, t in enumerate(("Key", "Title", "Status", "Due", "Effort", "Tested", "Retested on", "Updated", "Changed since test", "Note", "Linked from"), 1):
         put(it, 1, c, t, Font(bold=True, color="FFFFFF"), fill(NAVY), BORDER, CENTER)
+
+    def iso_date(s):
+        """The calendar date of a date or date-time text (an instant becomes its local date), as the page's isoDate does."""
+        s = str(s or "").strip()
+        if not s:
+            return ""
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", s):
+            return s
+        try:
+            d = datetime.fromisoformat(re.sub(r"([+-]\d{2})(\d{2})$", r"\1:\2", s.replace("Z", "+00:00")))
+        except ValueError:
+            return ""
+        return (d.astimezone() if d.tzinfo else d).date().isoformat()
+
+    TESTED_LABEL = {"verified": "Verified", "partial": "Partial", "fails": "Fails", "failed": "Fails", "not built": "Not built"}
     linked = HOUSE.get("_linked")
     if linked is None:   # no node: the simple split, which does not expand "62 to 68" ranges
         linked = {}
@@ -642,9 +659,14 @@ if ITEMS:
             for tok in (x.get("links") or "").replace(";", ",").split(","):
                 linked.setdefault(tok.strip(), []).append(x["id"])
     for r, (key, x) in enumerate(ITEMS.items(), 2):
-        for c, v in enumerate((key, x.get("title", ""), x.get("status", ""), x.get("due", ""), x.get("effort", ""), x.get("tested", ""), x.get("note", ""), ", ".join(linked.get(key, []))), 1):
+        tested = str(x.get("tested", "")).strip().lower()
+        retested, updated = iso_date(x.get("retested", "")), x.get("updated", "")
+        stale = "yes" if retested and updated and iso_date(updated) > retested else ""   # the tracker changed it after the test
+        row = (key, x.get("title", ""), x.get("status", ""), x.get("due", ""), x.get("effort", ""), TESTED_LABEL.get(tested, ""), retested,
+               iso_date(updated) or updated, stale, x.get("note", ""), ", ".join(linked.get(key, [])))
+        for c, v in enumerate(row, 1):
             put(it, r, c, v, Font(bold=True) if c == 1 else None, None, BORDER, LEFT)
-    for c, wdt in zip("ABCDEFGH", (12, 48, 14, 12, 8, 12, 60, 20)):
+    for c, wdt in zip("ABCDEFGHIJK", (12, 48, 14, 12, 8, 11, 12, 12, 10, 60, 20)):
         it.column_dimensions[c].width = wdt
     it.freeze_panes = "A2"
 
