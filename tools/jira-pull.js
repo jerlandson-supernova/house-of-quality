@@ -13,6 +13,9 @@
  *
  * The token is read from the environment, sent as Basic auth, and never printed or written anywhere. Make one with
  * https://id.atlassian.com/manage-profile/security/api-tokens. The page never sees these credentials: it reads the saved house.json.
+ * Requests go to https://api.atlassian.com/ex/jira/<cloudId> (the cloudId comes from https://<site>/_edge/tenant_info, no auth, or
+ * JIRA_CLOUD_ID): a scoped token works only there, and the site hostname treats a rejected pair as anonymous (200, no issues), so
+ * /myself is checked first and the script stops if the pair is not accepted.
  */
 'use strict';
 const fs = require('fs');
@@ -47,13 +50,30 @@ if (!jql) {
   jql = `project in (${projects.join(', ')}) ORDER BY key ASC`;
 }
 const fields = ['summary', 'status', 'updated', 'duedate', 'priority', 'resolutiondate'].concat(POINTS ? [POINTS] : [], SPRINT ? [SPRINT] : []);
-const auth = 'Basic ' + Buffer.from(EMAIL + ':' + TOKEN).toString('base64');
+const HEADERS = { Authorization: 'Basic ' + Buffer.from(EMAIL + ':' + TOKEN).toString('base64'), Accept: 'application/json', 'Content-Type': 'application/json' };
+let BASE = '';
+// Resolve the site's cloudId and check that Jira accepts the pair before reading anything.
+async function connect() {
+  let cloudId = process.env.JIRA_CLOUD_ID || '';
+  if (!cloudId) {
+    const r = await fetch(`https://${SITE}/_edge/tenant_info`);
+    if (!r.ok) throw new Error(`https://${SITE}/_edge/tenant_info answered ${r.status}: is JIRA_SITE the site's hostname?`);
+    cloudId = ((await r.json()) || {}).cloudId || '';
+    if (!cloudId) throw new Error(`no cloudId in https://${SITE}/_edge/tenant_info`);
+  }
+  BASE = `https://api.atlassian.com/ex/jira/${cloudId}`;
+  const me = await fetch(`${BASE}/rest/api/3/myself`, { headers: HEADERS });
+  if (me.status === 401 || me.status === 403) throw new Error(`Jira did not accept the JIRA_EMAIL + JIRA_API_TOKEN pair (${me.status}): the email must be the one on the Atlassian account that made the token, the token pasted whole, and a scoped token needs read:jira-work.`);
+  if (!me.ok) throw new Error(`Jira answered ${me.status} on /myself`);
+  const who = await me.json();
+  return who.displayName || who.accountId || 'account';
+}
 
 async function search(jqlText) {
   const out = []; let nextPageToken; let pages = 0;
   for (;;) {
     const body = { jql: jqlText, maxResults: 100, fields }; if (nextPageToken) body.nextPageToken = nextPageToken;
-    const res = await fetch(`https://${SITE}/rest/api/3/search/jql`, { method: 'POST', headers: { Authorization: auth, Accept: 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const res = await fetch(`${BASE}/rest/api/3/search/jql`, { method: 'POST', headers: HEADERS, body: JSON.stringify(body) });
     const text = await res.text(); let json = {}; try { json = JSON.parse(text); } catch (e) { /* not JSON */ }
     if (!res.ok) { const err = new Error(`Jira answered ${res.status}: ${(json.errorMessages || []).join(' ') || text.slice(0, 300)}`); err.status = res.status; err.messages = json.errorMessages || []; throw err; }
     (json.issues || []).forEach(i => out.push(i)); pages++;
@@ -68,7 +88,8 @@ const toRow = issue => { const f = issue.fields || {}; const row = { issue_key: 
   return row; };
 
 (async () => {
-  console.log(`Jira ${SITE} · ${jql}`);
+  const who = await connect();
+  console.log(`Jira ${SITE} · as ${who} · ${jql}`);
   let got;
   try { got = await search(jql); }
   catch (e) {

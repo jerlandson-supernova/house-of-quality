@@ -144,7 +144,7 @@ node tools/hoq.js import-items house.json jira-export.csv --write    # apply; --
 node tools/hoq.js daily house.json                                   # the daily read as text
 ```
 
-**From Jira's API.** `tools/jira-pull.js` needs node 18+ and three environment variables; it never prints the token.
+**From Jira's API.** `tools/jira-pull.js` needs node 18+ and three environment variables; it never prints the token. Classic and scoped tokens both work: the script resolves the site's cloud id, talks to `api.atlassian.com`, and checks whose token it is before reading (against the site hostname a scoped or mistyped token is silently anonymous and would read an empty board).
 
 ```bash
 export JIRA_SITE=your-site.atlassian.net JIRA_EMAIL=you@example.com JIRA_API_TOKEN=…   # token: id.atlassian.com → Security → API tokens
